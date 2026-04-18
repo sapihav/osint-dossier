@@ -1,0 +1,15 @@
+.DS_Store
+*.swp
+*.swo
+*~
+
+# Local-only operator files from skill runs (should never leave the host)
+/tmp/osint-*/
+phase-2-raw-*.md
+
+# Editor / IDE
+.idea/
+.vscode/
+
+# Transient artefact of pre-push quality-gate hook (if used) — never commit.
+CODE_REVIEW.md
