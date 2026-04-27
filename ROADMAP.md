@@ -54,7 +54,10 @@ talks (Notion/Vimeo embeds).
 
 **Effort:** S-M. **Lazy-load:** yes.
 
-### R4. Add Brave Search + Parallel AI as seed backends ◐ partial 2026-04-27 (Brave done, Parallel pending CLI)
+### R4. Add Brave Search + Parallel AI as seed backends ◐ partial 2026-04-27
+**Status:** Brave fallback shipped 2026-04-27 (SKILL.md Phase 1 manual
+fallback path → `WebSearch`). Parallel AI still pending its typed CLI.
+
 **Problem.** Free / cheap retrieval layer is missing. Brave is built-in to
 Claude Code (no key); Parallel AI is cheap and citation-rich.
 
@@ -127,9 +130,15 @@ orgs, places) with relations. Useful for downstream graph tools. Not a
 priority until a consumer exists.
 
 ### R12. Sidecar `dossier.facts.jsonl` (provenance graph) ✓ done 2026-04-27
-One fact per line: `{claim, grade, sources[], inferred_from[]}`. Lets
-downstream tools verify or re-grade without re-running the skill. Cheap
-addition, big payoff for tooling. No prior art seen.
+One fact per line: `{schema_version, claim, grade, sources[], notes}`,
+or `{...grade:"I", internal:{approved}}` for operator-approved internal
+facts. Lets downstream tools verify or re-grade without re-running the
+skill. Cheap addition, big payoff for tooling. No prior art seen.
+
+**Follow-up R12.1 (open):** add per-fact `id` rendering in
+`assets/dossier-template.md` so the sidecar can reference cross-fact
+provenance via `inferred_from: [<fact-id>]`. Dropped from initial v0.2.1
+shipment as YAGNI — re-open when an actual consumer wants graph edges.
 
 ### R13. Per-phase YAML I/O contracts
 Today phases are described in prose. A short YAML schema per phase

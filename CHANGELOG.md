@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.2.2 — 2026-04-27
+
+Post-review correctness pass — fixes shipped in v0.2.1.
+
+- **`references/tools.md` actor input shapes corrected** against live
+  Apify input schemas (`apify actors info --input <id>`). v0.2.1 used
+  guessed key names that the new community actors silently ignore:
+  - `harvestapi/linkedin-profile-scraper`: `profileUrls` → `queries`
+    (or `urls` / `publicIdentifiers` / `profileIds` per schema).
+    Documented optional `profileScraperMode` enum for the email tier.
+  - `harvestapi/linkedin-company`: `companyUrls` → `companies`
+    (or `searches` for name-based lookup).
+  - `apidojo/twitter-user-scraper`: `usernames` → `twitterHandles`
+    (or `startUrls` / `searchTerms` / `twitterUserIds`).
+  - YouTube transcript: split into two entries —
+    `pintostudio/youtube-transcript-scraper` takes `videoUrl` (singular
+    string) + `targetLanguage`; `topaz_sharingan/...` takes `startUrls`
+    (array) + `timestamps`. The previously documented unified shape
+    matched neither.
+  - `viralanalyzer/telegram-channel-scraper`: `messagesLimit` →
+    `maxPostsPerChannel` (capped at 500).
+- **Fallback-chains table** LinkedIn row updated from
+  `apify/linkedin-*` (dead) to `harvestapi/linkedin-*`.
+- **Phase 7 sidecar schema:** added `schema_version: "1"` per line for
+  forward-compat with the rest of the skill's JSON envelopes. Dropped
+  `inferred_from[]` (dangling — no fact-ID system in the dossier
+  template); re-introduce as R12.1 when a downstream consumer needs
+  graph edges.
+- **Phase 1 fallback wording** clarified: `WebSearch` output explicitly
+  counts as a Phase-1 result for Anti-pattern #1, just lower-confidence
+  than typed-CLI output. Resolves the prior "ungraded seed is still
+  better than blind" tension.
+
+---
+
 ## v0.2.1 — 2026-04-27
 
 Trust-budget + provenance pass.
@@ -10,8 +45,9 @@ Trust-budget + provenance pass.
   - `apify/linkedin-company-scraper` → `harvestapi/linkedin-company`
   - `apify/facebook-profile-scraper` → `cleansyntax/facebook-profile-posts-scraper`
     (low-traffic; warning kept that FB profile scraping is unreliable)
-  - `pintostudio/youtube-transcript-scraper`, `topaz_sharingan/Youtube-Transcript-Scraper`
-    (the latter slug is case-sensitive; corrected)
+  - `pintostudio/youtube-transcript-scraper` confirmed live;
+    `topaz_sharingan/Youtube-Transcript-Scraper` slug case-corrected
+    (Apify slugs are case-sensitive)
   - `apidojo/twitter-user-scraper`, `apidojo/tweet-scraper` (both confirmed)
   - `web.harvester/*` and `lukaskrivka/*` Telegram slugs do not exist;
     replaced with `viralanalyzer/telegram-channel-scraper` (low-traffic

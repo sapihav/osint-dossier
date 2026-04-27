@@ -104,8 +104,10 @@ data touched in this phase.
    **Manual fallback** (if the wrappers are unavailable): run up to 4
    parallel CLI calls yourself, then merge by hand. If no typed search
    CLI is available at all, fall back to Claude Code's built-in
-   `WebSearch` (Brave-backed) for at least one Phase-1 query — an
-   ungraded seed is still better than starting Phase 3 blind.
+   `WebSearch` (Brave-backed) for at least one Phase-1 query. WebSearch
+   output counts as a Phase-1 result for Anti-pattern #1 ("never start
+   Phase 3 without at least one Phase 1 result"); it is just lower
+   confidence than typed-CLI output.
 2. After each external call, log spend with
    `bash scripts/spend-add.sh <envelope.json> "$slug"` so the Phase 7 audit
    line is sourced from `./osint-<slug>/spend.jsonl` instead of guesswork.
@@ -325,7 +327,7 @@ embedded in the template's HTML comment header — do not duplicate them here.
 — one JSON object per line, 1-to-1 with the dossier's Facts list. Schema:
 
 ```json
-{"claim":"<string>","grade":"A|B|C|D|I","sources":["<url>","<url>"],"inferred_from":["<fact-id>"],"notes":""}
+{"schema_version":"1","claim":"<string>","grade":"A|B|C|D|I","sources":["<url>","<url>"],"notes":""}
 ```
 
 For Grade-I (internal) facts, omit `sources` and include
