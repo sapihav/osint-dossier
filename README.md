@@ -94,14 +94,25 @@ osint-dossier/
 ├── SKILL.md                     # The skill prompt (Claude Code loads this)
 ├── DESIGN.md                    # Architecture rationale
 ├── README.md                    # You are here
+├── ROADMAP.md                   # R1–R15 prioritised
 ├── LICENSE                      # MIT
 ├── CHANGELOG.md
+├── assets/
+│   └── dossier-template.md      # Phase 7 fillable template
 ├── references/
 │   ├── phase-2-gates.md         # 4-gate internal-intel protocol
 │   ├── platforms.md             # Per-platform URL patterns and chains
+│   ├── tools.md                 # Apify actor catalog
+│   ├── content-extraction.md    # YouTube/podcast/blog/talk transcripts
 │   └── psychoprofile.md         # MBTI/Big-Five methodology
-└── scripts/
-    └── check-tools.sh           # Preflight diagnostic
+├── scripts/
+│   ├── check-tools.sh           # Preflight diagnostic
+│   ├── first-volley.sh          # Phase 1 parallel fan-out
+│   ├── merge-volley.sh          # Phase 1 dedup + seed.json merge
+│   ├── spend-add.sh             # Append CLI call to spend.jsonl
+│   └── spend-total.sh           # Running cost rollup
+└── samples/
+    └── jony-ive-2026-04-26/     # Baseline dossier for post-port compare
 ```
 
 ## Not for
