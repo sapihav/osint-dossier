@@ -5,11 +5,17 @@
 
 # Local-only operator files from skill runs (should never leave the host)
 /tmp/osint-*/
+osint-*/
 phase-2-raw-*.md
 
 # Editor / IDE
 .idea/
 .vscode/
+
+# Project-local skill mount (the symlinks at .claude/skills/osint-dossier
+# are dev-only — when this repo is *itself* installed under another
+# project's .claude/skills/, that's the intended layout, not this repo's.)
+.claude/
 
 # Transient artefact of pre-push quality-gate hook (if used) — never commit.
 CODE_REVIEW.md

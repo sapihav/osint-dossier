@@ -1,0 +1,56 @@
+{
+  "schema_version": "1",
+  "provider": "exa",
+  "command": "answer",
+  "elapsed_ms": 5264,
+  "result": {
+    "answer": "Jony Ive is currently the founder of LoveFrom, a creative collective he established in 2019, based in San Francisco, California. As of 2025-2026, he is also leading design efforts at OpenAI, working on AI hardware and technology, following his merger with OpenAI's io project in 2025, which was valued at $6.5 billion ([Britannica](https://www.britannica.com/biography/Jony-Ive); [LoveFrom Wikipedia](https://en.wikipedia.org/wiki/LoveFrom); [Monocle](https://monocle.com/business/can-jony-ive-save-san-francisco-interview); [Business Standard](https://www.business-standard.com/technology/tech-news/who-is-jony-ive-apple-former-designer-chief-sam-altman-openai-125052700911_1.html)). \n\nIve's role at LoveFrom involves collaborating with high-profile clients such as Ferrari, Airbnb, and others, while his partnership with OpenAI focuses on AI hardware development, aiming to revolutionize artificial intelligence interfaces. His biography highlights his influential career at Apple, where he designed iconic products like the iPhone, iPod, and MacBook, before founding LoveFrom and joining OpenAI ([Britannica](https://www.britannica.com/biography/Jony-Ive); [Wikipedia](https://en.wikipedia.org/wiki/Jony_Ive)). \n\nRegarding his education and family, detailed personal information such as specific educational background or family details is not provided in the search results. However, he was born in London in 1967 and holds British-American nationality ([Britannica](https://www.britannica.com/biography/Jony-Ive); [Wikipedia](https://en.wikipedia.org/wiki/Jony_Ive)).",
+    "citations": [
+      {
+        "id": "https://britannica.com/biography/Jony-Ive",
+        "url": "https://www.britannica.com/biography/Jony-Ive",
+        "title": "Jony Ive | Biography, Apple, LoveFrom, \u0026 Facts | Britannica Money",
+        "image": "https://cdn.britannica.com/03/199903-050-042E786B/Jonathan-Ive-2015.jpg",
+        "favicon": "https://britannica.com/money/favicon.ico?favicon.03z0jrlixopk8.ico"
+      },
+      {
+        "id": "https://en.wikipedia.org/wiki/LoveFrom",
+        "url": "https://en.wikipedia.org/wiki/LoveFrom",
+        "title": "LoveFrom"
+      },
+      {
+        "id": "https://en.wikipedia.org/wiki/Jony_Ive",
+        "url": "https://en.wikipedia.org/wiki/Jony_Ive",
+        "title": "Jony Ive",
+        "author": "Doug Grinbergs",
+        "image": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/85/Apple_Newton-IMG_0454-cropped.jpg/250px-Apple_Newton-IMG_0454-cropped.jpg"
+      },
+      {
+        "id": "https://monocle.com/business/can-jony-ive-save-san-francisco-interview",
+        "url": "https://monocle.com/business/can-jony-ive-save-san-francisco-interview",
+        "title": "Interview: Jony Ive joins OpenAI. The designer on his new venture in San Francisco - Monocle",
+        "author": "Christopher Lord",
+        "publishedDate": "2025-05-22T00:14:00.000Z",
+        "image": "https://monocle.com/wp-content/uploads/2025/05/MM_MONOCLE_SF_CITYHALL_8764_thumb.jpg?fit=1280%2C960",
+        "favicon": "https://monocle.com/wp-content/uploads/2025/11/cropped-MONOCLE_DIGI_BLACK-BGWHITE-M-MARK_1.png?fit=32%2C32"
+      },
+      {
+        "id": "https://business-standard.com/technology/tech-news/who-is-jony-ive-apple-former-designer-chief-sam-altman-openai-125052700911_1.html",
+        "url": "https://www.business-standard.com/technology/tech-news/who-is-jony-ive-apple-former-designer-chief-sam-altman-openai-125052700911_1.html",
+        "title": "Jony Ive joins OpenAI: What to know about Apple's former design chief | Tech News - Business Standard",
+        "author": "Business Standard",
+        "publishedDate": "2025-05-27T09:32:19.000Z",
+        "image": "https://bsmedia.business-standard.com/_media/bs/img/article/2024-09/23/thumb/fitandfill/1200X630/1727114911-9827.jpg",
+        "favicon": "https://www.business-standard.com/bs-favicon.ico"
+      },
+      {
+        "id": "https://sirjonyive.com",
+        "url": "https://sirjonyive.com",
+        "title": "Sir Jony Ive — Designer, Visionary, Knighted"
+      }
+    ],
+    "costDollars": {
+      "total": 0.005
+    }
+  }
+}

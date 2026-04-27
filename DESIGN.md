@@ -115,14 +115,15 @@ symlink the folder explicitly.
 
 The frontmatter restricts the skill to a small, specific list: the CLI
 binaries it uses, `WebSearch`/`WebFetch` for fallbacks, `Read`/`Glob`/`Grep`
-for phase-2 vault searches, `Write` **only** into `/tmp/osint-*`, and
+for phase-2 vault searches, `Write` **only** under `./osint-*` (CWD-relative), and
 `AskUserQuestion` for gates.
 
 **Why.** If the skill is ever loaded from a position where the session also
 has `Bash(*)` enabled, an attacker-controlled payload inside a scraped page
 could otherwise trick the agent into running arbitrary commands. `Bash(*)`
-is never in the skill's allow list; only `Bash(<binary>:*)` for the seven
-trusted binaries.
+is never in the skill's allow list; only `Bash(<binary>:*)` for the six
+trusted external CLIs and the skill's own helper scripts (each listed by
+explicit path).
 
 **Alternative considered.** `Bash(.claude/skills/osint-dossier/scripts/*.sh:*)`
 for generic script loading — rejected because scripts in that folder could

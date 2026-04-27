@@ -64,7 +64,7 @@ The gates move enforcement out of the prompt (soft) into the file system
 ## Gate 2 — Write-only execution
 
 The queries run **and** their results go to
-`/tmp/osint-<slug>/phase-2-raw.md`. The agent **does not** load the raw
+`./osint-<slug>/phase-2-raw.md`. The agent **does not** load the raw
 content into its own context.
 
 ### File shape
@@ -121,7 +121,7 @@ PROMOTION: <waiting for operator>
 
 ### Question text (verbatim)
 
-> *"Phase-2 raw file is at `/tmp/osint-<slug>/phase-2-raw.md`. Open it,
+> *"Phase-2 raw file is at `./osint-<slug>/phase-2-raw.md`. Open it,
 > redact anything you do not want to appear in the dossier (replace with
 > `[REDACTED]`), and replace every `[REDACTION_NEEDED — …]` marker with
 > either the approved excerpt, an `[INDIRECT: <one-line paraphrase>]`
@@ -166,7 +166,7 @@ PROMOTION: <waiting for operator>
 
 Performed by the agent, after reply `approved`:
 
-1. `Read` `/tmp/osint-<slug>/phase-2-raw.md`.
+1. `Read` `./osint-<slug>/phase-2-raw.md`.
 2. Assert the last non-blank line matches the regex:
    `^PROMOTION: APPROVED \S+ \d{4}-\d{2}-\d{2}$`.
 3. Assert no line contains the literal `REDACTION_NEEDED`.

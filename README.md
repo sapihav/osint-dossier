@@ -19,7 +19,6 @@ internal-intelligence phase.
   - `exa` — Exa AI
   - `tavily` — Tavily
   - `jina` — Jina AI (reader / search / deepsearch)
-  - `parallel` — Parallel AI
 - Optional scrape providers: `apify` (Apify CLI), `brightdata`
   (@brightdata/cli).
 - Keys via env vars only (see `SKILL.md §Tool layer`). The skill never
@@ -62,7 +61,7 @@ The skill runs 7 phases end-to-end:
 | 4 | Cross-reference + fact grading (A/B/C/D + I for internal) |
 | 5 | Psychoprofile (optional) |
 | 6 | Coverage + depth scoring + gap analysis |
-| 7 | Dossier rendering to `/tmp/osint-<slug>/dossier.md` |
+| 7 | Dossier rendering to `./osint-<slug>/dossier.md` (CWD-relative) |
 
 Budget default: ≤ $0.50 per subject without asking; above that the skill
 stops and prompts.
@@ -73,7 +72,8 @@ stops and prompts.
   build JSON payloads via typed serialisers — no string interpolation of
   arbitrary text into shell/JSON.
 - **Narrow `allowed-tools`.** No `Bash(*)`, no wildcard `Write`. Writes
-  only to `/tmp/osint-*`.
+  only under `./osint-*` (relative to the operator's working directory at
+  skill launch).
 - **Env-var-only auth.** The skill and the CLIs refuse to fall back to
   key files on disk.
 - **4-gate Phase 2 protocol.** Internal-intelligence queries are written
