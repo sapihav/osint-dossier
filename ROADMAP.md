@@ -54,7 +54,7 @@ talks (Notion/Vimeo embeds).
 
 **Effort:** S-M. **Lazy-load:** yes.
 
-### R4. Add Brave Search + Parallel AI as seed backends
+### R4. Add Brave Search + Parallel AI as seed backends ◐ partial 2026-04-27 (Brave done, Parallel pending CLI)
 **Problem.** Free / cheap retrieval layer is missing. Brave is built-in to
 Claude Code (no key); Parallel AI is cheap and citation-rich.
 
@@ -126,7 +126,7 @@ Currently flat fact list. Could emit a sidecar JSON of entities (people,
 orgs, places) with relations. Useful for downstream graph tools. Not a
 priority until a consumer exists.
 
-### R12. Sidecar `dossier.facts.jsonl` (provenance graph)
+### R12. Sidecar `dossier.facts.jsonl` (provenance graph) ✓ done 2026-04-27
 One fact per line: `{claim, grade, sources[], inferred_from[]}`. Lets
 downstream tools verify or re-grade without re-running the skill. Cheap
 addition, big payoff for tooling. No prior art seen.

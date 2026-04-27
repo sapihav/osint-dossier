@@ -102,7 +102,10 @@ data touched in this phase.
    `./osint-<slug>/seed.json` in the unified
    `{schema_version, merged_from, rows[], answers[]}` shape.
    **Manual fallback** (if the wrappers are unavailable): run up to 4
-   parallel CLI calls yourself, then merge by hand.
+   parallel CLI calls yourself, then merge by hand. If no typed search
+   CLI is available at all, fall back to Claude Code's built-in
+   `WebSearch` (Brave-backed) for at least one Phase-1 query — an
+   ungraded seed is still better than starting Phase 3 blind.
 2. After each external call, log spend with
    `bash scripts/spend-add.sh <envelope.json> "$slug"` so the Phase 7 audit
    line is sourced from `./osint-<slug>/spend.jsonl` instead of guesswork.
@@ -317,6 +320,18 @@ which platform, which search — not just "missing".
 Render the final dossier to `./osint-<slug>/dossier.md` by filling the
 placeholders in `assets/dossier-template.md`. Rules and grade legend are
 embedded in the template's HTML comment header — do not duplicate them here.
+
+**Also emit a machine-readable sidecar** `./osint-<slug>/dossier.facts.jsonl`
+— one JSON object per line, 1-to-1 with the dossier's Facts list. Schema:
+
+```json
+{"claim":"<string>","grade":"A|B|C|D|I","sources":["<url>","<url>"],"inferred_from":["<fact-id>"],"notes":""}
+```
+
+For Grade-I (internal) facts, omit `sources` and include
+`"internal":{"approved":"YYYY-MM-DD"}` instead. The sidecar lets
+downstream tools verify, re-grade, or graph-merge facts across dossiers
+without re-running the skill.
 
 Source the audit-log spend total from `bash scripts/spend-total.sh "$slug"`
 (returns `{total_usd, calls, providers}` JSON), and the elapsed time from

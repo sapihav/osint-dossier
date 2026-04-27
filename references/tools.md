@@ -131,8 +131,10 @@ below cover what *is* reachable.
 ### Facebook — personal profile
 
 - **Status:** No reliable Apify actor. Skip to `brightdata scrape` per
-  `platforms.md`. `apify/facebook-profile-scraper` exists but returns
-  thin data and breaks often. ` # TODO: verify on Apify Store`
+  `platforms.md`. `cleansyntax/facebook-profile-posts-scraper` is the
+  highest-traffic alternative on the Store (~167 users/30d as of
+  2026-04-27) but volume is low — verify currency before relying. The
+  earlier `apify/facebook-profile-scraper` slug does not exist.
 
 ---
 
@@ -140,8 +142,9 @@ below cover what *is* reachable.
 
 ### LinkedIn — profile
 
-- **Actor ID:** `apify/linkedin-profile-scraper`
-  ` # TODO: verify on Apify Store`
+- **Actor ID:** `harvestapi/linkedin-profile-scraper` (community, no
+  cookies; ~5.7k users/30d, verified 2026-04-27). The `apify/`-prefixed
+  slug does not exist on the Store.
 - **Input shape:**
   ```json
   { "profileUrls": ["https://linkedin.com/in/<handle>"] }
@@ -158,8 +161,9 @@ below cover what *is* reachable.
 
 ### LinkedIn — company page
 
-- **Actor ID:** `apify/linkedin-company-scraper`
-  ` # TODO: verify on Apify Store`
+- **Actor ID:** `harvestapi/linkedin-company` (community, no cookies;
+  ~1.3k users/30d, verified 2026-04-27). The `apify/`-prefixed slug does
+  not exist on the Store.
 - **Input shape:**
   ```json
   { "companyUrls": ["https://linkedin.com/company/<slug>"] }
@@ -253,8 +257,8 @@ below cover what *is* reachable.
 ### YouTube — transcript
 
 - **Actor ID:** `pintostudio/youtube-transcript-scraper` (community) or
-  `topaz_sharingan/youtube-transcript-scraper` (community).
-  ` # TODO: verify on Apify Store`
+  `topaz_sharingan/Youtube-Transcript-Scraper` (community; note the
+  capitalised slug — Apify is case-sensitive). Both verified 2026-04-27.
 - **Input shape:**
   ```json
   { "videoUrls": ["https://youtube.com/watch?v=<id>"], "language": "en" }
@@ -315,8 +319,7 @@ cross-referenced. Note when X is the sole source for a claim.
 ### X — profile
 
 - **Actor ID:** `apidojo/twitter-user-scraper` (community, currently
-  the most maintained at time of writing).
-  ` # TODO: verify on Apify Store`
+  the most maintained; verified 2026-04-27).
 - **Input shape:**
   ```json
   { "usernames": ["someone"] }
@@ -332,8 +335,8 @@ cross-referenced. Note when X is the sole source for a claim.
 
 ### X — tweets
 
-- **Actor ID:** `apidojo/tweet-scraper` (community).
-  ` # TODO: verify on Apify Store`
+- **Actor ID:** `apidojo/tweet-scraper` (community; ~5.2k users/30d,
+  verified 2026-04-27).
 - **Input shape:**
   ```json
   { "twitterHandles": ["someone"], "maxItems": 100, "sort": "Latest" }
@@ -359,9 +362,10 @@ backfill.
 
 ### Telegram — public channel bulk
 
-- **Actor ID:** `web.harvester/telegram-channel-scraper` or
-  `lukaskrivka/telegram-public-channel-scraper`
-  ` # TODO: verify on Apify Store`
+- **Actor ID:** `viralanalyzer/telegram-channel-scraper` (community).
+  Low Apify Store traffic (~4 users/30d as of 2026-04-27) — verify
+  currency before relying. The earlier `web.harvester/*` and
+  `lukaskrivka/*` slugs do not exist on the Store.
 - **Input shape:**
   ```json
   { "channels": ["@<channel>"], "messagesLimit": 200 }

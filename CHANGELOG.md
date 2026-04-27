@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.2.1 — 2026-04-27
+
+Trust-budget + provenance pass.
+
+- **`references/tools.md` actor IDs verified against the live Apify Store.**
+  All 8 previously TODO-flagged actor IDs resolved:
+  - `apify/linkedin-profile-scraper` → `harvestapi/linkedin-profile-scraper`
+  - `apify/linkedin-company-scraper` → `harvestapi/linkedin-company`
+  - `apify/facebook-profile-scraper` → `cleansyntax/facebook-profile-posts-scraper`
+    (low-traffic; warning kept that FB profile scraping is unreliable)
+  - `pintostudio/youtube-transcript-scraper`, `topaz_sharingan/Youtube-Transcript-Scraper`
+    (the latter slug is case-sensitive; corrected)
+  - `apidojo/twitter-user-scraper`, `apidojo/tweet-scraper` (both confirmed)
+  - `web.harvester/*` and `lukaskrivka/*` Telegram slugs do not exist;
+    replaced with `viralanalyzer/telegram-channel-scraper` (low-traffic
+    warning attached)
+- **Phase 7 sidecar (R12):** the orchestrator now emits
+  `./osint-<slug>/dossier.facts.jsonl` alongside `dossier.md` — one JSON
+  object per fact, schema: `{claim, grade, sources[], inferred_from[],
+  notes}`. Grade-I uses `internal:{approved:"YYYY-MM-DD"}` instead of
+  `sources`. Lets downstream tools verify / re-grade without re-running
+  the skill.
+- **Phase 1 fallback (R4 partial):** explicit instruction to use
+  `WebSearch` (Brave-backed in Claude Code) when no typed search CLI is
+  available, rather than starting Phase 3 blind.
+
+---
+
 ## v0.2.0 — 2026-04-27
 
 Coverage + portability pass.
