@@ -9,27 +9,25 @@ Date opened: 2026-04-27 · Owner: @sapihav
 
 ## P0 — Portability blocker
 
-### R1. Decide the install contract: typed CLIs vs bundled wrappers
-**Problem.** The skill silently assumes the host has `perplexity`, `exa`,
+### R1. Install contract: typed CLIs from public sources ✓ done 2026-04-29
+**Problem.** The skill silently assumed the host has `perplexity`, `exa`,
 `tavily`, `jina`, `apify`, `brightdata` typed CLIs installed. On a fresh
-machine the skill is dead — `check-tools.sh` reports red, but the operator
-has nothing to actually run.
+machine the skill was dead — `check-tools.sh` reported red, but the operator
+had nothing to actually run.
 
-**Decision needed (pick one):**
-- **A. Stay typed-CLI-only** → make install painless: ship `scripts/install.sh`
-  that fetches each CLI binary (or `brew bundle` / Homebrew tap), and make
-  `check-tools.sh` print the exact install line per missing tool.
-- **B. Add fallback bash wrappers** under `scripts/wrappers/` that hit the
-  raw HTTP API when the typed CLI is missing. Wrappers must produce the same
-  JSON envelope (`schema_version`, `result`, `citations`, `cost_usd`).
-- **C. Hybrid:** typed CLI preferred, wrapper fallback auto-detected by
-  `check-tools.sh`.
+**Decision (option A, full typed-CLI):** stay typed-CLI-only. No
+HTTP-wrapper fallback layer. Public sources only.
 
-**Recommendation:** **C**. Keep the rigor of typed CLIs as primary; add
-wrappers as a portability safety net. Document clearly in `DESIGN.md` which
-is the source of truth for the JSON envelope (the typed CLI).
-
-**Effort:** M (1 wrapper per backend × 4 backends).
+**Shipped:**
+- `scripts/install.sh` — idempotent installer. `curl | bash` of each Go
+  CLI's published `install.sh` (which fetches the latest GitHub release
+  binary — no Go toolchain required), `npm i -g` for `apify` /
+  `brightdata`, `pipx install` for `jina`. Modes: default (install
+  missing), `--check`, `--line <bin>`.
+- `scripts/check-tools.sh` — when a tool is missing, prints the exact
+  install command by delegating to `install.sh --line`. Single source of
+  truth for install commands.
+- README install section updated.
 
 ---
 

@@ -1,5 +1,36 @@
 # Changelog
 
+## v0.3.0 — 2026-04-29
+
+R1 — install contract.
+
+- **`scripts/install.sh` added.** Idempotent installer for every CLI the
+  skill expects. Public sources only — no Go toolchain required:
+  - `curl -sSL https://raw.githubusercontent.com/sapihav/perplexity-cli/main/install.sh | bash`
+  - `curl -sSL https://raw.githubusercontent.com/sapihav/exa-cli/main/install.sh | bash`
+  - `curl -sSL https://raw.githubusercontent.com/sapihav/tavily-cli/main/install.sh | bash`
+  - `npm install -g apify-cli`
+  - `npm install -g @brightdata/cli`
+  - `pipx install jina`
+  Each repo's `install.sh` detects OS/arch, fetches the latest GitHub
+  release binary, drops it under `/usr/local/bin` (overridable via
+  `INSTALL_DIR`).
+- Modes: default (install missing), `--check` (status report only,
+  non-zero exit if any missing), `--line <bin>` (print the install
+  command for a single tool — single source of truth shared with
+  `check-tools.sh`).
+- Verifies required toolchain (`curl`+`bash` / `npm` / `pipx`) is on
+  PATH before attempting install; prints a hint if missing.
+- **`scripts/check-tools.sh` updated.** Missing tools now show the exact
+  install command (delegated to `install.sh --line`); the previously
+  hand-rolled hint block is gone.
+- **README** install section now points at `scripts/install.sh` as the
+  one-shot bootstrap; project layout updated.
+- No HTTP-wrapper fallback layer was added — typed-CLI security model is
+  preserved as-is. (R1 option A, not C.)
+
+---
+
 ## v0.2.2 — 2026-04-27
 
 Post-review correctness pass — fixes shipped in v0.2.1.

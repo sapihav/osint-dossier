@@ -10,27 +10,55 @@ Project-local install. Typed-CLI orchestrator, not a scraper. Designed with
 tight `allowed-tools`, zero file-based key storage, and a fail-closed
 internal-intelligence phase.
 
-## Requirements
+## Prerequisites
 
-- Claude Code CLI (any recent version that supports skills with YAML
-  frontmatter).
-- At least one search provider. Skill supports:
-  - `perplexity` — Perplexity API
-  - `exa` — Exa AI
-  - `tavily` — Tavily
-  - `jina` — Jina AI (reader / search / deepsearch)
-- Optional scrape providers: `apify` (Apify CLI), `brightdata`
-  (@brightdata/cli).
-- Keys via env vars only (see `SKILL.md §Tool layer`). The skill never
-  reads key files from disk.
+The host must have the following **before** running `scripts/install.sh`:
 
-Preflight to see what's reachable on your host:
+| Requirement | Why | Install hint |
+|---|---|---|
+| macOS or Linux | Bash scripts assume POSIX + Darwin/Linux; Windows not tested | — |
+| Claude Code CLI | Loads and runs the skill | https://claude.com/claude-code |
+| `bash` ≥ 4 + `curl` | Used to fetch each Go CLI's release binary | preinstalled on macOS / most Linux |
+| `node` + `npm` | `apify` and `brightdata` are npm packages | `brew install node` / `apt install nodejs npm` |
+| `pipx` | `jina` is a Python package | `brew install pipx && pipx ensurepath` |
+| `jq` | Used by the orchestrator scripts and by each Go CLI installer to read GitHub releases | `brew install jq` / `apt install jq` |
+| Provider API keys exported as env vars | Skill never reads key files from disk; CLIs refuse on-disk fallback | see **Dependencies** below |
+
+Run preflight at any time to see what's missing:
 
 ```bash
 bash scripts/check-tools.sh
 ```
 
-## Install
+## Dependencies
+
+These are the CLIs the skill calls at runtime. `scripts/install.sh`
+installs all of them from public sources only — no Go toolchain
+required, no local repos referenced.
+
+```bash
+bash scripts/install.sh
+```
+
+| CLI | Purpose | Required env var | Install method |
+|---|---|---|---|
+| `perplexity` | Search / retrieval | `PERPLEXITY_API_KEY` | `curl \| bash` from [`sapihav/perplexity-cli`](https://github.com/sapihav/perplexity-cli) release |
+| `exa` | Search / retrieval | `EXA_API_KEY` | `curl \| bash` from [`sapihav/exa-cli`](https://github.com/sapihav/exa-cli) release |
+| `tavily` | Search / retrieval | `TAVILY_API_KEY` | `curl \| bash` from [`sapihav/tavily-cli`](https://github.com/sapihav/tavily-cli) release |
+| `jina` | Reader / search / deepsearch | `JINA_API_KEY` | `pipx install jina` |
+| `apify` | Platform scraping (LinkedIn / IG / FB / TikTok / YouTube / Telegram / Maps) | `APIFY_TOKEN` | `npm install -g apify-cli` |
+| `brightdata` | Authwalled platform scraping fallback | `BRIGHTDATA_API_KEY` | `npm install -g @brightdata/cli` |
+
+**At least one search provider** (perplexity / exa / tavily / jina) is
+required for Phase 1; the skill fails preflight otherwise. Scrape
+providers are optional — Phase 3 degrades gracefully if neither is on
+PATH.
+
+The installer is idempotent — re-running it skips tools already on
+`$PATH`. To see the install command for a single tool without running
+it: `bash scripts/install.sh --line <bin>`.
+
+## Install the skill
 
 ```bash
 # Clone into your project's skills directory
@@ -106,6 +134,7 @@ osint-dossier/
 │   ├── content-extraction.md    # YouTube/podcast/blog/talk transcripts
 │   └── psychoprofile.md         # MBTI/Big-Five methodology
 ├── scripts/
+│   ├── install.sh               # Install all expected CLIs (public sources)
 │   ├── check-tools.sh           # Preflight diagnostic
 │   ├── first-volley.sh          # Phase 1 parallel fan-out
 │   ├── merge-volley.sh          # Phase 1 dedup + seed.json merge

@@ -5,7 +5,18 @@
 
 set -euo pipefail
 
+HERE="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_SH="$HERE/install.sh"
+
 say() { printf '%s\n' "$*"; }
+
+# Print the install command for a binary by delegating to install.sh.
+# Empty string if install.sh doesn't know about it (e.g. jq, curl).
+hint_for() {
+  local bin="$1"
+  [ -x "$INSTALL_SH" ] || return 0
+  bash "$INSTALL_SH" --line "$bin" 2>/dev/null || true
+}
 
 ok=()
 missing=()
@@ -22,7 +33,13 @@ check_bin() {
       ok+=("$bin")
     fi
   else
-    say "  ✗  $bin — not installed"
+    local hint
+    hint=$(hint_for "$bin")
+    if [ -n "$hint" ]; then
+      say "  ✗  $bin — not installed   ($hint)"
+    else
+      say "  ✗  $bin — not installed"
+    fi
     missing+=("$bin")
   fi
 }
@@ -62,10 +79,8 @@ if [ "$has_search" -eq 0 ]; then
   say "   WebSearch/WebFetch. Functionality is limited without a paid"
   say "   provider (Perplexity / Exa / Tavily / Jina)."
   say ""
-  say "   Install hints (pick one):"
-  say "     uv tool install perplexity-cli   # from ~/src/CLIs (once built)"
-  say "     pipx install jina-ai-cli          # official"
-  say "     brew install apify-cli            # official"
+  say "   To install everything the skill expects:"
+  say "     bash scripts/install.sh"
   exit 1
 fi
 
