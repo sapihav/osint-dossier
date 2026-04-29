@@ -1,7 +1,17 @@
 #!/usr/bin/env bash
 # install.sh — install every CLI the osint-dossier skill expects.
 #
-# Idempotent: skips tools already on PATH. Public sources only.
+# Idempotent in the "skip already-present" sense: re-running is safe and
+# tools already on PATH are skipped. It does NOT detect or upgrade stale
+# versions — to upgrade, uninstall the binary and re-run, or use each
+# tool's native upgrade command.
+#
+# Public sources only:
+#   - Go CLIs: curl|bash from each repo's install.sh on the `main` branch.
+#     Trust model: those repos are owned by the same author as this skill;
+#     anything pushed to their `main` runs verbatim on every install.
+#     Pin to a release tag if you need a tighter trust boundary.
+#   - npm and pipx packages: standard public registries.
 #
 # Modes:
 #   bash install.sh                 install all missing tools
@@ -98,11 +108,10 @@ mode_line() {
 }
 
 mode_check() {
-  local row bin method target missing=0
+  local row bin missing=0
   say "=== osint-dossier — install status ==="
   for row in "${TOOLS[@]}"; do
-    bin="${row%%|*}"; method="${row#*|}"; method="${method%%|*}"
-    target="${row##*|}"
+    bin="${row%%|*}"
     if command -v "$bin" >/dev/null 2>&1; then
       say "  ✓  $bin"
     else

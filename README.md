@@ -54,9 +54,11 @@ required for Phase 1; the skill fails preflight otherwise. Scrape
 providers are optional — Phase 3 degrades gracefully if neither is on
 PATH.
 
-The installer is idempotent — re-running it skips tools already on
-`$PATH`. To see the install command for a single tool without running
-it: `bash scripts/install.sh --line <bin>`.
+The installer is idempotent in the "skip already-present" sense — re-running
+it skips tools already on `$PATH`. It does **not** detect or upgrade stale
+versions; to upgrade, uninstall the binary first and re-run, or use the
+tool's native upgrade command. To see the install command for a single
+tool without running it: `bash scripts/install.sh --line <bin>`.
 
 ## Install the skill
 

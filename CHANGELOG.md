@@ -4,8 +4,10 @@
 
 R1 — install contract.
 
-- **`scripts/install.sh` added.** Idempotent installer for every CLI the
-  skill expects. Public sources only — no Go toolchain required:
+- **`scripts/install.sh` added.** Installer for every CLI the skill
+  expects. Idempotent in the "skip already-present" sense (re-runs are
+  safe, tools on PATH are skipped); does not auto-upgrade stale
+  versions. Public sources only — no Go toolchain required:
   - `curl -sSL https://raw.githubusercontent.com/sapihav/perplexity-cli/main/install.sh | bash`
   - `curl -sSL https://raw.githubusercontent.com/sapihav/exa-cli/main/install.sh | bash`
   - `curl -sSL https://raw.githubusercontent.com/sapihav/tavily-cli/main/install.sh | bash`
