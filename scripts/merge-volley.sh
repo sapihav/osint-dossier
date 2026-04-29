@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # merge-volley.sh — Phase 1 merge: collapse all volley-*.json envelopes into
-# a single seed.json with deduped rows + per-provider answers.
+# stages/01-seed.json with deduped rows + per-provider answers.
 
 set -euo pipefail
 
@@ -9,7 +9,7 @@ usage() {
 Usage: merge-volley.sh <slug>
 
 Reads ./osint-<slug>/volley-*.json (envelope shape), extracts citation rows,
-deduplicates by canonical URL, writes ./osint-<slug>/seed.json.
+deduplicates by canonical URL, writes ./osint-<slug>/stages/01-seed.json.
 Stdout: {rows, deduped, answers}.
 EOF
 }
@@ -22,6 +22,7 @@ fi
 slug="$1"
 work="./osint-$slug"
 [ -d "$work" ] || { echo "merge-volley: $work not found" >&2; exit 1; }
+mkdir -p "$work/stages"
 
 # Find volley files.
 shopt -s nullglob
@@ -154,7 +155,7 @@ jq -n \
   --argjson answers "$all_answers" \
   --argjson merged_from "$mf_json" \
   '{schema_version: "1", merged_from: $merged_from, rows: $rows, answers: $answers}' \
-  > "$work/seed.json"
+  > "$work/stages/01-seed.json"
 
 jq -cn \
   --argjson rows "$final_count" \

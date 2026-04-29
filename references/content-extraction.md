@@ -246,11 +246,19 @@ Write to `./osint-<slug>/content/x-thread-<tweet-id>.md`.
 
 ```
 ./osint-<slug>/
-  dossier.md
-  seed.json
-  seed-summary.md
+  dossier.md              # Phase 7 canonical
+  dossier.facts.jsonl     # Phase 7 sidecar (R12)
+  seed-summary.md         # Phase 1 human note
   phase-2-raw.md          # gated, may not exist
-  platform-*.md           # one per platform (Phase 3)
+  spend.jsonl             # cost ledger (R7)
+  stages/                 # structured per-phase artifacts (R19)
+    00-tooling.json
+    01-seed.json
+    02-internal.gates.log # gate state only, no content
+    03-platform-<name>.json   # one per platform (Phase 3)
+    04-cross-ref.json
+    05-psychoprofile.json     # only if Phase 5 ran
+    06-gaps.json
   content/
     youtube-<videoId>.md
     podcast-<slug>.md

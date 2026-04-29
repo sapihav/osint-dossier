@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-04-29 · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-04-29 (R19) · Owner: @sapihav
 
 ---
 
@@ -86,7 +86,7 @@ concrete, not to introduce new ceremony.
   frontmatter allow-list (binary renamed `parallel` → `parallel-cli`
   to match upstream and avoid collision with GNU parallel).
 
-### R19. Stage-by-stage artifact persistence [NEW 2026-04-29]
+### R19. Stage-by-stage artifact persistence ✓ done 2026-04-29
 **Problem.** Today only some phase outputs land on disk
 (`seed.json` from Phase 1 via R6, `dossier.md` + `dossier.facts.jsonl`
 from Phase 7 via R12, `spend.jsonl` via R7). Phases 3, 4, 5, 6

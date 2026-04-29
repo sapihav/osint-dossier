@@ -140,7 +140,7 @@ osint-dossier/
 │   ├── install.sh               # Install all expected CLIs (public sources)
 │   ├── check-tools.sh           # Preflight diagnostic
 │   ├── first-volley.sh          # Phase 1 parallel fan-out
-│   ├── merge-volley.sh          # Phase 1 dedup + seed.json merge
+│   ├── merge-volley.sh          # Phase 1 dedup + stages/01-seed.json merge
 │   ├── spend-add.sh             # Append CLI call to spend.jsonl
 │   └── spend-total.sh           # Running cost rollup
 └── samples/

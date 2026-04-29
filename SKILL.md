@@ -47,6 +47,39 @@ skill launch** (`$PWD`). The skill never writes outside that subtree.
 
 ---
 
+## Stage artifacts
+
+Every phase persists its structured output to
+`./osint-<slug>/stages/` so a run is auditable and resumable. Filename
+convention (one artifact per phase):
+
+| Phase | Path | Shape |
+|---|---|---|
+| 0 | `stages/00-tooling.json` | preflight: CLIs available, env vars set, `has_search` bool |
+| 1 | `stages/01-seed.json` | merged search results (written by `merge-volley.sh`) |
+| 2 | `stages/02-internal.gates.log` | 4-gate audit trail — gate state only, **not** content |
+| 3 | `stages/03-platform-<platform>.json` | one file per platform queried (linkedin, instagram, …) |
+| 4 | `stages/04-cross-ref.json` | graded fact list pre-render (same shape as `dossier.facts.jsonl` plus working notes) |
+| 5 | `stages/05-psychoprofile.json` | only if Phase 5 ran |
+| 6 | `stages/06-gaps.json` | gap list with where-and-how |
+| 7 | `dossier.md` + `dossier.facts.jsonl` | top-level (canonical paths from R12) |
+
+Rules:
+- Each phase writes its stage artifact **before** the phase is considered
+  complete. If a write fails, the phase fails — do not proceed.
+- **Phase 2 content is never persisted under `stages/`.** Only the gate
+  state log is. The redactable content file `phase-2-raw.md` stays at the
+  top level under operator control (per the 4-gate protocol). This is the
+  core security invariant — do not relax it.
+- Scratch intermediates (`volley-*.json`, `seed-summary.md`, `phase-2-raw.md`,
+  `content/<…>.md`, `spend.jsonl`) stay at the top level. `stages/` holds
+  only the structured per-phase artifacts.
+- A run interrupted between Phase N and N+1 can be resumed: re-invoke the
+  skill and instruct it to start at Phase N+1, reading
+  `stages/0N-*.json` for input.
+
+---
+
 ## Tool layer
 
 This skill **does not call HTTP APIs directly**. It shells out to typed CLIs
@@ -79,12 +112,18 @@ it does not silently fall back.
    CLIs are available.
 2. Parse `$ARGUMENTS`. Extract: `subject_name`, optional `context` list
    (company, city, role).
-3. Create the work folder: `./osint-<subject-slug>/` (slug = lowercase
-   name, ASCII, hyphens for spaces).
+3. Create the work folder and stage subdir: `./osint-<subject-slug>/stages/`
+   (slug = lowercase name, ASCII, hyphens for spaces).
 4. If no `subject_name` — use `AskUserQuestion` to collect one. Never guess.
 5. Decide the minimum viable toolset for this run:
    - Need ≥ 1 of: `perplexity`, `tavily`, `exa`, `jina`, or built-in `WebSearch`.
    - If none are available, stop and report.
+6. **Persist the stage artifact.** `Write` `./osint-<slug>/stages/00-tooling.json`:
+   ```json
+   {"schema_version":"1","phase":0,"clis_available":["perplexity","jina"],
+    "env_vars_set":["PERPLEXITY_API_KEY","JINA_API_KEY"],"has_search":true,
+    "subject_name":"<name>","context":["..."],"slug":"<slug>","ts":"<ISO>"}
+   ```
 
 ---
 
@@ -97,10 +136,12 @@ data touched in this phase.
    `bash scripts/first-volley.sh "$subject_name" $context`. It fans out one
    background call per available CLI (perplexity / exa / jina / tavily),
    staggers starts by 0.5 s, applies a per-job 60 s timeout, and writes
-   `./osint-<slug>/volley-<provider>.json` per provider. Then run
+   `./osint-<slug>/volley-<provider>.json` per provider (these are scratch
+   intermediates, not stage artifacts). Then run
    `bash scripts/merge-volley.sh "$slug"` to dedup by canonical URL and emit
-   `./osint-<slug>/seed.json` in the unified
-   `{schema_version, merged_from, rows[], answers[]}` shape.
+   `./osint-<slug>/stages/01-seed.json` in the unified
+   `{schema_version, merged_from, rows[], answers[]}` shape — this is the
+   Phase 1 stage artifact.
    **Manual fallback** (if the wrappers are unavailable): run up to 4
    parallel CLI calls yourself, then merge by hand. If no typed search
    CLI is available at all, fall back to Claude Code's built-in
@@ -118,6 +159,9 @@ data touched in this phase.
    `./osint-<slug>/seed-summary.md`.
 5. Decide: proceed to Phase 2 (internal intel) or skip directly to Phase 3
    (platforms). Default: ask the operator via `AskUserQuestion`.
+6. **Stage artifact:** `stages/01-seed.json` (already written by
+   `merge-volley.sh` in step 1). If you fell back to the manual path or
+   `WebSearch`, write the merged result yourself in the same shape.
 
 **Rate-limiting rule:** no more than 4 concurrent outbound calls across this
 whole phase (one per available search CLI). Staggered starts of 0.5 s.
@@ -131,6 +175,21 @@ Before any of this runs, **read** `references/phase-2-gates.md`. This phase
 touches your own local data (chat history, email, vault) and is behind four
 explicit gates. If any gate fails, the phase stops and Phase 3 proceeds
 **without** internal data.
+
+**Stage artifact:** `stages/02-internal.gates.log` — append-only audit
+trail of gate state transitions. Lines are ASCII-safe and contain **no
+content** from internal sources, only gate decisions. Format:
+
+```
+<ISO-8601-UTC> gate-1 result=<yes|skip|cancel|n/a>
+<ISO-8601-UTC> gate-2 written findings=<N>
+<ISO-8601-UTC> gate-3 result=<approved|skip|still-redacting>
+<ISO-8601-UTC> gate-4 result=<passed|failed-regex|failed-redaction-marker|failed-missing-file>
+```
+
+Append one line per gate decision as you reach it. Phase 2 raw findings
+go to `./osint-<slug>/phase-2-raw.md` (operator workspace) — **never** to
+`stages/`.
 
 ### Gate 1 — Pre-execution approval
 Use `AskUserQuestion` with the exact question:
@@ -219,11 +278,28 @@ signals for a specific platform. For Apify actor IDs / input shapes / typical
 costs per platform, read `references/tools.md`. For pulling clean text out
 of YouTube / podcasts / blog / talks, read `references/content-extraction.md`.
 
+### Stage artifact (per platform)
+For every platform queried, `Write`
+`./osint-<slug>/stages/03-platform-<platform>.json` with the structured
+extraction output. Schema:
+
+```json
+{"schema_version":"1","phase":3,"platform":"linkedin",
+ "subject_slug":"<slug>","queries":[{"url":"...","cli":"apify","cost_usd":0.05}],
+ "rows":[{...platform-specific fields...}],"errors":[],"ts":"<ISO>"}
+```
+
+Writing one file per platform (instead of one combined file) lets the
+opt-in fan-out path (R8) write each cluster independently with no
+merge step.
+
 ### Content-platform rule
 When a YouTube / podcast / blog / conference talk is found — extract
 transcripts on the spot (don't just note the URL). Content platforms are the
 #1 source for voice and topic signal. Store transcript text under
-`./osint-<slug>/content/<platform>-<id>.md`.
+`./osint-<slug>/content/<platform>-<id>.md` (scratch intermediate, not a
+stage artifact — the structured row in `03-platform-<platform>.json`
+references the transcript path).
 
 ### Fan-out option (optional, default off)
 If you are working on a subject with a large footprint and the operator has
@@ -233,7 +309,8 @@ parallel sub-agents (one per platform cluster). Rules:
 1. Each sub-agent gets **only** what it needs: subject name, handle, 1–2
    context keywords. **Never** pass Phase-2 content to sub-agents.
 2. Each sub-agent writes its output to
-   `./osint-<slug>/platform-<name>.md`.
+   `./osint-<slug>/stages/03-platform-<name>.json` (same convention as the
+   sequential path — fan-out is just parallelism, not a different shape).
 3. Main agent waits for all workers, merges, proceeds to Phase 4.
 4. Each worker's budget: ≤ $0.15. Total fan-out budget: ≤ $0.50.
 5. Fan-out is opt-in; default is sequential.
@@ -263,6 +340,22 @@ If the name is common, require at least 2 facts (e.g., company + city, or
 photo + role) linking to the same entity. If unsure, split into separate
 entries.
 
+### Stage artifact
+`Write` `./osint-<slug>/stages/04-cross-ref.json` — the graded fact list
+pre-render. Same shape as `dossier.facts.jsonl` (one fact per object) but
+as a single JSON document plus working notes:
+
+```json
+{"schema_version":"1","phase":4,
+ "facts":[{"claim":"...","grade":"A","sources":["..."],"notes":""}],
+ "contradictions":[{"claim_a":"...","claim_b":"...","sources":["...","..."]}],
+ "name_collision":{"checked":true,"resolved":true,"evidence":["..."]},
+ "ts":"<ISO>"}
+```
+
+This is the input to Phase 6 (gap analysis) and Phase 7 (render). Re-running
+either phase in isolation reads from this file.
+
 ---
 
 ## Phase 5 — Psychoprofile (optional, read `references/psychoprofile.md` first)
@@ -274,6 +367,19 @@ medium / low). Writing-style metrics: avg. sentence length, self-reference
 rate, emoji density.
 
 Never infer family, DOB, or zodiac unless confirmed at grade A or B.
+
+### Stage artifact
+If Phase 5 ran, `Write`
+`./osint-<slug>/stages/05-psychoprofile.json`:
+
+```json
+{"schema_version":"1","phase":5,
+ "mbti":{"E_I":{"value":"I","confidence":"medium","evidence":["..."]}, "...":{}},
+ "writing_style":{"avg_sentence_len":14.2,"self_reference_rate":0.08,"emoji_density":0.01},
+ "samples_used":["<url>","<url>"],"ts":"<ISO>"}
+```
+
+If Phase 5 was skipped, do not create the file (its absence is the signal).
 
 ---
 
@@ -315,6 +421,21 @@ Weighted sum → `Depth Score`.
 Every gap in the dossier includes a **where-and-how** — which public register,
 which platform, which search — not just "missing".
 
+### Stage artifact
+`Write` `./osint-<slug>/stages/06-gaps.json`:
+
+```json
+{"schema_version":"1","phase":6,
+ "coverage":{"passed":7,"failed":["check_4_contact","check_7_photo"]},
+ "depth_score":7.4,
+ "gaps":[{"gap":"current employer","where_and_how":"linkedin profile, company about page"}],
+ "stop_decision":"render-with-note|continue|render-final",
+ "cycle":1,"ts":"<ISO>"}
+```
+
+Phase 7 reads this file when filling the dossier's "Gaps" + "Coverage &
+Depth" sections, so a re-render does not need to re-run Phase 6.
+
 ---
 
 ## Phase 7 — Dossier Rendering
@@ -338,6 +459,11 @@ without re-running the skill.
 Source the audit-log spend total from `bash scripts/spend-total.sh "$slug"`
 (returns `{total_usd, calls, providers}` JSON), and the elapsed time from
 the wall-clock between Phase 0 start and Phase 7 render.
+
+The audit log's `Stage manifest` field lists the produced
+`stages/0N-*` artifacts (one entry per phase that ran). The dossier file
+itself stays at the canonical top-level path (`./osint-<slug>/dossier.md`,
+`./osint-<slug>/dossier.facts.jsonl`) — no mirror under `stages/`.
 
 ---
 
@@ -399,5 +525,6 @@ the wall-clock between Phase 0 start and Phase 7 render.
 - `references/psychoprofile.md` — MBTI/Big Five methodology (lazy-loaded at
   Phase 5).
 - `assets/dossier-template.md` — fillable Phase 7 output template.
-- `scripts/first-volley.sh`, `scripts/merge-volley.sh` — Phase 1 fan-out + merge.
+- `scripts/first-volley.sh`, `scripts/merge-volley.sh` — Phase 1 fan-out + merge
+  (writes `stages/01-seed.json`).
 - `scripts/spend-add.sh`, `scripts/spend-total.sh` — Phase 7 cost ledger.

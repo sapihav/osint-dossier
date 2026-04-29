@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.4.0 — 2026-04-29
+
+R19 closed — stage-by-stage artifact persistence.
+
+- **`./osint-<slug>/stages/` filename convention** introduced. Every
+  phase now persists its structured output under `stages/` so a run is
+  auditable and resumable. One artifact per phase:
+  - `00-tooling.json` — Phase 0 preflight (CLIs, env vars, has_search).
+  - `01-seed.json` — Phase 1 merged search results (was `seed.json`).
+  - `02-internal.gates.log` — Phase 2 4-gate audit trail (state only,
+    **no content**).
+  - `03-platform-<platform>.json` — Phase 3 per-platform extraction.
+  - `04-cross-ref.json` — Phase 4 graded fact list pre-render.
+  - `05-psychoprofile.json` — Phase 5 (only if it ran; absence = signal).
+  - `06-gaps.json` — Phase 6 coverage / depth / gap list.
+  - Phase 7 stays at top-level (`dossier.md`, `dossier.facts.jsonl`).
+- **Phase 2 content stays off-disk under `stages/`.** Only the gate
+  state log is persisted there. The redactable `phase-2-raw.md` file
+  remains at the top level under operator control (4-gate protocol
+  unchanged). This is the core security invariant — do not relax.
+- Resumability: a run interrupted between Phase N and N+1 can be
+  resumed by re-invoking the skill and instructing it to start at
+  Phase N+1, reading `stages/0N-*.json` for input.
+- `scripts/merge-volley.sh` updated to write
+  `./osint-<slug>/stages/01-seed.json` (was `./osint-<slug>/seed.json`)
+  and `mkdir -p stages`. Volley scratch files
+  (`volley-<provider>.json`) stay at the top level — they are
+  intermediates, not stage artifacts.
+- `assets/dossier-template.md` audit log gains a `Stage manifest`
+  field listing the produced `stages/0N-*` artifacts.
+- ROADMAP: R19 marked done.
+
+### Migration notes
+
+- Existing dossiers under `./osint-<slug>/seed.json` are not
+  auto-migrated. Re-run the skill or move the file:
+  `mkdir -p ./osint-<slug>/stages && mv ./osint-<slug>/seed.json ./osint-<slug>/stages/01-seed.json`.
+
+---
+
 ## v0.3.1 — 2026-04-29
 
 R4 closed — Parallel AI typed CLI is now available.

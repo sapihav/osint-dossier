@@ -54,3 +54,4 @@ Not run.
 - Internal intelligence: {{internal_intel_state}}
 - Approx. total spend: ${{total_spend_usd}}
 - Elapsed: {{elapsed_human}}
+- Stage manifest: {{stage_manifest}}
