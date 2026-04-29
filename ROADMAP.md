@@ -1,9 +1,29 @@
 # osint-dossier — Roadmap
 
-Living doc. Items are ordered by **value × ease**. Anchored in gaps surfaced
-during real runs and design review.
+Living doc. Items are ordered by **value × ease**, anchored against a
+parity reference: an external OSINT skill we surveyed for feature scope,
+plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-04-29 · Owner: @sapihav
+
+---
+
+## Deliberate divergences (NOT gaps to close)
+
+Areas where we ship something different from the parity reference on
+purpose. Do not re-open without re-litigating the security / design
+trade-off.
+
+1. **No HTTP-wrapper layer.** Typed CLIs are the security boundary;
+   `install.sh` installs them from public sources. The reference skill
+   ships per-provider bash wrappers that hit raw HTTP — we deliberately
+   chose typed-CLI only (R1 option A).
+2. **Phase 2 is human-gated and fail-closed.** Internal-intelligence
+   content (Telegram DMs, email bodies, vault contacts) is never
+   inhaled into model context. The reference skill's equivalent phase
+   does inhale and treats internal data as Grade A. We tag internal
+   facts as Grade I and require a 4-gate operator promotion. This is
+   the core distinguishing posture of this skill.
 
 ---
 
@@ -19,150 +39,196 @@ had nothing to actually run.
 HTTP-wrapper fallback layer. Public sources only.
 
 **Shipped:**
-- `scripts/install.sh` — idempotent installer. `curl | bash` of each Go
-  CLI's published `install.sh` (which fetches the latest GitHub release
+- `scripts/install.sh` — installer. `curl | bash` of each Go CLI's
+  published `install.sh` (which fetches the latest GitHub release
   binary — no Go toolchain required), `npm i -g` for `apify` /
   `brightdata`, `pipx install` for `jina`. Modes: default (install
-  missing), `--check`, `--line <bin>`.
+  missing), `--check`, `--line <bin>`. Idempotent in the
+  "skip-already-present" sense; does not auto-upgrade.
 - `scripts/check-tools.sh` — when a tool is missing, prints the exact
-  install command by delegating to `install.sh --line`. Single source of
-  truth for install commands.
-- README install section updated.
-
----
-
-## P1 — Coverage gaps (largest pure-feature wins)
-
-### R2. `references/tools.md` — Apify actor catalog ✓ done 2026-04-27
-**Problem.** Phase 3 says "use the right actor" but doesn't say which.
-
-**Scope:** at minimum cover Instagram (profile, posts, comments, reels),
-Facebook (pages, groups), LinkedIn (profile, company), TikTok (profile,
-videos), YouTube (channel, video, transcript), Google Maps (place, reviews).
-For each: actor ID, required inputs, expected output shape, typical cost.
-
-**Effort:** M-L. **Lazy-load:** yes, only when Phase 3 hits the platform.
-
-### R3. `references/content-extraction.md` ✓ done 2026-04-27
-**Problem.** Phase 3 rule says "extract transcripts on the spot" but no how.
-
-**Scope:** YouTube (apify actor → `yt-dlp --write-auto-sub` fallback);
-podcasts (RSS + `whisper` fallback); blog/long-form (`jina read`); conference
-talks (Notion/Vimeo embeds).
-
-**Effort:** S-M. **Lazy-load:** yes.
-
-### R4. Add Brave Search + Parallel AI as seed backends ◐ partial 2026-04-27
-**Status:** Brave fallback shipped 2026-04-27 (SKILL.md Phase 1 manual
-fallback path → `WebSearch`). Parallel AI still pending its typed CLI.
-
-**Problem.** Free / cheap retrieval layer is missing. Brave is built-in to
-Claude Code (no key); Parallel AI is cheap and citation-rich.
-
-**Scope:** extend `scripts/check-tools.sh`, add to Phase 1 fan-out list,
-update SKILL.md retrieval table. Brave is already partially covered via
-`WebSearch` — formalise it.
-
-**Effort:** S.
-
-### R5. Extract dossier template to `assets/dossier-template.md` ✓ done 2026-04-27
-**Problem.** Phase 7's output shape is inlined in `SKILL.md`. Editing the
-template requires editing the orchestrator.
-
-**Scope:** move to `assets/`, replace inline block with a one-line "render
-via `assets/dossier-template.md`, fill placeholders". Keep grade legend +
-audit-log shape in the asset.
-
-**Effort:** S.
-
----
-
-## P2 — Concrete impl of things we currently only describe
-
-### R6. `scripts/first-volley.sh` + `scripts/merge-volley.sh` ✓ done 2026-04-27
-**Problem.** Phase 1 says "3 parallel calls, 0.5 s stagger, dedup by URL +
-title-similarity". Today this is the agent's responsibility — fragile,
-non-deterministic.
-
-**Scope:**
-- `first-volley.sh <subject> [context...]` — spawns N background CLI calls,
-  writes each to `./osint-<slug>/volley-<provider>.json`, waits with proper
-  macOS-compatible timeout (no `tail --pid`).
-- `merge-volley.sh <slug>` — reads all envelopes, dedups by URL +
-  title-similarity, emits unified `seed.json`.
-
-**Effort:** M.
-
-### R7. Cost & elapsed accounting harness ✓ done 2026-04-27
-**Problem.** Skill says "tracked from CLI output" but there's no aggregator.
-Operator has no running total mid-session.
-
-**Scope:**
-- `scripts/spend-add.sh <envelope.json> <slug>` — appends one JSONL line per
-  call to `./osint-<slug>/spend.jsonl`.
-- `scripts/spend-total.sh <slug>` — returns running `{total_usd, calls}` JSON.
-- Phase 7 audit log reads from this.
-
-**Effort:** S.
-
----
-
-## P3 — Things to consider, not yet committed
-
-### R8. Default-on parallel collection?
-Today fan-out is opt-in. Re-evaluate after R2 lands — with a real actor
-catalog, parallelism becomes more obviously valuable. Trade-off: speed vs
-token cost vs context-isolation safety.
-
-### R9. Caching of identical queries within a session
-Right now if two phases ask the same thing, we pay twice. Add hash-keyed
-cache under `./osint-<slug>/.cache/`.
-
-### R10. Output formats beyond markdown
-HTML / PDF / JSON-export of the dossier for downstream consumers. YAGNI
-unless an actual consumer asks.
-
-### R11. Subject-graph (entity links)
-Currently flat fact list. Could emit a sidecar JSON of entities (people,
-orgs, places) with relations. Useful for downstream graph tools. Not a
-priority until a consumer exists.
-
-### R12. Sidecar `dossier.facts.jsonl` (provenance graph) ✓ done 2026-04-27
-One fact per line: `{schema_version, claim, grade, sources[], notes}`,
-or `{...grade:"I", internal:{approved}}` for operator-approved internal
-facts. Lets downstream tools verify or re-grade without re-running the
-skill. Cheap addition, big payoff for tooling. No prior art seen.
-
-**Follow-up R12.1 (open):** add per-fact `id` rendering in
-`assets/dossier-template.md` so the sidecar can reference cross-fact
-provenance via `inferred_from: [<fact-id>]`. Dropped from initial v0.2.1
-shipment as YAGNI — re-open when an actual consumer wants graph edges.
-
-### R13. Per-phase YAML I/O contracts
-Today phases are described in prose. A short YAML schema per phase
-(`inputs`, `outputs`, `side_effects`, `gates`) would make the contract
-machine-checkable and refactor-safe.
-
-### R14. Test corpus of canned subjects
-1 dead public figure, 1 corporate exec, 1 micro-celebrity, 1
-namesake-collision case — with snapshot dossiers for regression testing.
-
----
-
-## P0 (operator-driven additions)
+  install command by delegating to `install.sh --line`.
+- README split into Prerequisites + Dependencies sections.
 
 ### R15. Output convention — PWD-relative, not `/tmp` ✓ done 2026-04-27
-**Status:** done 2026-04-27.
-
 Operator requirement: dossier outputs must land in the operator's working
 directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 
+---
+
+## P1 — Parity gaps that actually move the needle
+
+### R8. Swarm Mode default — concrete sub-agent spawn protocol [PROMOTED 2026-04-29]
+**Problem.** Today fan-out at the agent level is opt-in and described in
+prose. The reference skill makes parallel sub-agent collection the
+DEFAULT and specifies a concrete spawn protocol; we don't.
+
 **Scope:**
-- Update `SKILL.md` paths throughout (Phases 0, 1, 2, 3, 7, security posture).
-- Update frontmatter `Write(...)` allow-list to permit `./osint-*/**`.
-- Add `osint-*/` to `.gitignore` so dev runs from inside the skill repo
-  don't leak into git.
-- Update `references/phase-2-gates.md` if it cites the old path.
+- Promote sub-agent fan-out to the default Phase-3 path (sequential
+  remains as `--seq` opt-out).
+- Document concrete task-split buckets in SKILL.md — five slots
+  covering: video/transcript, authwalled-deep (FB / LinkedIn),
+  open-graph social (IG / X / Telegram), regional + maps + registries,
+  deep-research (Perplexity / Exa / Parallel deep modes).
+- Each sub-agent gets ALL known data from Phase 1 seed, writes results
+  to `./osint-<slug>/swarm-<task>.md`, runs on a cheaper model.
+- Per-agent budget cap ≤ $0.15; total swarm cap ≤ $0.50.
+- Main agent waits for all sub-agents before Phase 4 cross-reference.
+- Phase 2 (internal intel) **stays in main agent only** — never
+  delegated to a sub-agent. Non-negotiable per security invariant.
+
+**Effort:** L. Touches SKILL.md substantially. ≤500 LOC achievable
+because the sub-agent spawn primitive lives in the host agent runtime.
+
+### R16. Universal Apify actor runner [NEW 2026-04-29]
+**Problem.** Today Phase 3 calls `apify` CLI directly and the operator /
+agent has to know each actor's input shape. The v0.2.1 → v0.2.2 patch
+cycle (correcting `profileUrls` → `queries`, `usernames` → `twitterHandles`,
+etc.) is exactly the failure mode this prevents. The reference skill ships
+a single `run-actor.sh <actor_id> <json_input>` entry point that handles
+auth, version, and output formatting uniformly.
+
+**Scope:**
+- `scripts/run-actor.sh <actor_id> <json_input> [--output <path>] [--format csv|json]`.
+- Implementation in Node (`scripts/run_actor.js`) using the Apify SDK —
+  bash wrapper for env loading + arg shaping.
+- Output normalised to the same JSON envelope as the typed CLIs
+  (`schema_version`, `result`, `cost_usd`, `elapsed_ms`).
+- `references/tools.md` rewrites: per actor we now only need
+  `actor_id` + `input_shape_example` — runner does the call, so the
+  catalog is documentation, not orchestration glue.
+- `package.json` added under `scripts/` for the runner's deps.
+
+**Effort:** M-L. Adds Node prerequisite (already listed under npm CLIs,
+but a runner is heavier than a one-shot install).
+
+### R18. Research Escalation Flow — formalised cost/depth tiers [NEW 2026-04-29]
+**Problem.** SKILL.md mentions "use cheap before expensive" in passing
+but doesn't formalise it. The reference skill has explicit Levels 1–4
+(seconds/$0 → minutes/$0.50) with provider mappings per level. Without
+this, the agent picks providers ad-hoc and budget overruns are common.
+
+**Scope:**
+- New section in SKILL.md: "Research Escalation Flow" with four levels.
+  - L1 (seconds, ~$0): web search + Perplexity Sonar + Exa search +
+    Tavily basic — fan out, take whatever's cheapest first.
+  - L2 (seconds-minutes, ~$0.01): source verification via `jina read` /
+    Tavily extract on top hits.
+  - L3 (minutes, ~$0.05–0.10): Apify actors for platform extraction
+    when an open-graph profile is in scope.
+  - L4 (minutes, ~$0.25–0.50): deep research modes — Perplexity Deep,
+    Exa Deep, Parallel Deep — only after L1–L3 fail to close gaps.
+- Decision rule per level: "ascend only if Phase 6 gap analysis flags
+  unfilled high-priority slots".
+- Phase 7 audit log records which level each fact was sourced from.
+
+**Effort:** S-M. Mostly SKILL.md prose + a small section in
+`assets/dossier-template.md` audit-log block.
+
+### R2.1. Expand Apify actor catalog to reference breadth [NEW 2026-04-29]
+**Problem.** R2 shipped a catalog covering ~10 platform/actor combos.
+The reference skill claims 55+ actors embedded — broader coverage of
+secondary actors per platform (e.g. comments scrapers, tagged-posts
+scrapers, contact-info enrichers) and additional platforms.
+
+**Scope:**
+- Add to `references/tools.md`: comments / tagged / hashtag scrapers
+  per platform; contact-info enrichers (`vdrmota/contact-info-scraper`
+  etc.); regional registries; Yandex/DuckDuckGo search variants.
+- Each entry verified against `apify actors info --input <id>` per the
+  v0.2.2 lesson — input shapes are not guessable.
+- Trade-off: bigger catalog = more lazy-load weight when Phase 3 reads
+  the file. Mitigate by adding `references/tools-extras.md` with the
+  long tail, keeping `tools.md` focused on the top-tier actors.
+
+**Effort:** M. Mostly cataloguing + verification; pairs naturally with
+R16 (runner makes the catalog purely informational).
+
+### R4. Brave Search + Parallel AI as seed backends ◐ partial 2026-04-27
+**Status:** Brave fallback shipped via `WebSearch`. Parallel AI typed
+CLI not yet published; closes when `sapihav/parallel-cli` lands.
+
+---
+
+## P2 — Real but lower priority
+
+### R17. MCP client for non-typed-CLI services [NEW 2026-04-29]
+**Problem.** Some retrieval / scrape services expose only an MCP
+endpoint (e.g. Bright Data's MCP server, future MCP-only providers).
+Today we have no path to call them — they fall outside the typed-CLI
+boundary. The reference skill ships a small Python MCP client
+(Streamable HTTP / SSE) for exactly this case.
+
+**Scope:**
+- `scripts/mcp-client.py` — JSON-RPC over Streamable HTTP/SSE, list
+  tools + call tool. No external deps (stdlib only).
+- Same JSON envelope as typed CLIs.
+- SKILL.md addition: when a typed CLI exists for a service, prefer it;
+  use the MCP client only when no typed CLI is available.
+- Auth via env var (`<SERVICE>_MCP_URL` containing the token in the URL,
+  or a separate `<SERVICE>_MCP_TOKEN` — TBD).
+
+**Why P2, not P1:** contingent on us actually wanting MCP-only
+services. Bright Data's typed CLI exists (`brightdata`); the MCP path
+is mostly useful for newer providers we haven't onboarded. Re-rank to
+P1 if a target service appears that has no CLI.
+
+**Effort:** S-M.
+
+### R9. Caching of identical queries within a session
+Right now if two phases ask the same thing, we pay twice. Add hash-keyed
+cache under `./osint-<slug>/.cache/`. Worth doing once Swarm Mode (R8)
+lands — the duplicate-query rate goes up when sub-agents work in
+parallel.
+
+**Effort:** S.
+
+---
+
+## P3 — Defer / reconsider
+
+### R13. Per-phase YAML I/O contracts
+A short YAML schema per phase (`inputs`, `outputs`, `side_effects`,
+`gates`) would make the contract machine-checkable and refactor-safe.
+Significant SKILL.md rework. Defer until R8 + R16 + R18 stabilise the
+phase shape.
+
+### R12.1. Per-fact `id` rendering (gated on consumer)
+Sidecar `dossier.facts.jsonl` (R12) shipped without per-fact IDs. Add
+when a downstream consumer wants graph edges (`inferred_from: [<id>]`).
+
+### R11. Subject-graph (entity links) — gated on consumer
+Currently flat fact list. Could emit a sidecar JSON of entities with
+relations. Not a priority until a consumer exists.
+
+### R10. Output formats beyond markdown — YAGNI
+HTML / PDF / JSON-export of the dossier. YAGNI unless an actual
+consumer asks.
+
+---
+
+## Killed / superseded
+
+### R14. Test corpus of canned subjects ✗ killed 2026-04-29
+**Original idea:** 1 dead public figure, 1 corporate exec, 1
+micro-celebrity, 1 namesake-collision case — with snapshot dossiers
+for regression testing.
+
+**Why killed:** R14 is regression protection for graded/scored
+algorithms. This skill is mostly prose in SKILL.md and reference docs;
+the only "algorithmic" surface is Phase 4 grading + Phase 6 coverage
+scoring, which don't change often. Re-open if R8 / R16 / R18 introduce
+non-trivial logic that warrants regression coverage.
+
+---
+
+## Already shipped (P1/P2 done items)
+
+- **R2** ✓ done 2026-04-27 — `references/tools.md` Apify actor catalog (initial breadth; expand under R2.1).
+- **R3** ✓ done 2026-04-27 — `references/content-extraction.md`.
+- **R5** ✓ done 2026-04-27 — Dossier template extracted to `assets/dossier-template.md`.
+- **R6** ✓ done 2026-04-27 — `scripts/first-volley.sh` + `scripts/merge-volley.sh` (Phase 1 fan-out).
+- **R7** ✓ done 2026-04-27 — Cost & elapsed accounting (`spend-add.sh` / `spend-total.sh`).
+- **R12** ✓ done 2026-04-27 — Sidecar `dossier.facts.jsonl` (provenance graph).
 
 ---
 
@@ -173,6 +239,8 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 - Auto-renewal of dossiers on a schedule — see "loop" / "schedule" skills.
 - Bypass of authwalls / CAPTCHAs without explicit operator authorisation —
   legal/ethical guardrail, not a roadmap item.
+- HTTP-wrapper fallback layer — see Deliberate divergences.
+- Pulling internal-intel content into model context — see Deliberate divergences.
 
 ---
 
@@ -183,3 +251,5 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 3. If a P0/P1 item turns out to break the rigor invariants
    (4-gate Phase 2, typed-CLI security boundary, etc.) — stop and re-design
    before merging.
+4. Parity check: after every shipped P1 item, re-audit against the
+   parity reference. Promote / kill / add R-items as needed.
