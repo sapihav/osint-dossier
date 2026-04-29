@@ -57,79 +57,24 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 
 ## P1 — Parity gaps that actually move the needle
 
-### R8. Swarm Mode default — concrete sub-agent spawn protocol [PROMOTED 2026-04-29]
-**Problem.** Today fan-out at the agent level is opt-in and described in
-prose. The reference skill makes parallel sub-agent collection the
-DEFAULT and specifies a concrete spawn protocol; we don't.
-
-**Scope:**
-- Promote sub-agent fan-out to the default Phase-3 path (sequential
-  remains as `--seq` opt-out).
-- Document concrete task-split buckets in SKILL.md — five slots
-  covering: video/transcript, authwalled-deep (FB / LinkedIn),
-  open-graph social (IG / X / Telegram), regional + maps + registries,
-  deep-research (Perplexity / Exa / Parallel deep modes).
-- Each sub-agent gets ALL known data from Phase 1 seed, writes results
-  to `./osint-<slug>/swarm-<task>.md`, runs on a cheaper model.
-- Per-agent budget cap ≤ $0.15; total swarm cap ≤ $0.50.
-- Main agent waits for all sub-agents before Phase 4 cross-reference.
-- Phase 2 (internal intel) **stays in main agent only** — never
-  delegated to a sub-agent. Non-negotiable per security invariant.
-
-**Effort:** L. Touches SKILL.md substantially. ≤500 LOC achievable
-because the sub-agent spawn primitive lives in the host agent runtime.
-
-### R18. Research Escalation Flow — formalised cost/depth tiers [NEW 2026-04-29]
+### R18. Research Escalation Flow — small SKILL.md table [NEW 2026-04-29, scoped down]
 **Problem.** SKILL.md mentions "use cheap before expensive" in passing
-but doesn't formalise it. The reference skill has explicit Levels 1–4
-(seconds/$0 → minutes/$0.50) with provider mappings per level. Without
-this, the agent picks providers ad-hoc and budget overruns are common.
+but doesn't formalise it.
 
-**Scope:**
-- New section in SKILL.md: "Research Escalation Flow" with four levels.
-  - L1 (seconds, ~$0): web search + Perplexity Sonar + Exa search +
-    Tavily basic — fan out, take whatever's cheapest first.
-  - L2 (seconds-minutes, ~$0.01): source verification via `jina read` /
-    Tavily extract on top hits.
-  - L3 (minutes, ~$0.05–0.10): Apify actors for platform extraction
-    when an open-graph profile is in scope.
-  - L4 (minutes, ~$0.25–0.50): deep research modes — Perplexity Deep,
-    Exa Deep, Parallel Deep — only after L1–L3 fail to close gaps.
-- Decision rule per level: "ascend only if Phase 6 gap analysis flags
-  unfilled high-priority slots".
-- Phase 7 audit log records which level each fact was sourced from.
+**Scope (intentionally small):**
+- Add a 4-row table in SKILL.md mapping providers to cost tiers:
+  - L1 (~$0): `WebSearch`, Perplexity Sonar, Exa search, Tavily basic.
+  - L2 (~$0.01): `jina read`, Tavily extract.
+  - L3 (~$0.05–0.10): `apify call <id>` for platform extraction.
+  - L4 (~$0.25–0.50): Perplexity Deep / Exa Deep / Parallel Deep.
+- One rule: "ascend only when Phase 6 flags unfilled high-priority
+  slots".
 
-**Effort:** S-M. Mostly SKILL.md prose + a small section in
-`assets/dossier-template.md` audit-log block.
+That's it — no new section heading hierarchy, no per-level decision
+trees, no audit-log changes. Goal is to make the existing prose rule
+concrete, not to introduce new ceremony.
 
-### R2.1. Expand Apify actor catalog to reference breadth [NEW 2026-04-29]
-**Problem.** R2 shipped a catalog covering ~10 platform/actor combos.
-The reference skill claims 55+ actors embedded — broader coverage of
-secondary actors per platform (e.g. comments scrapers, tagged-posts
-scrapers, contact-info enrichers) and additional platforms.
-
-**Scope:**
-- Add to `references/tools.md`: comments / tagged / hashtag scrapers
-  per platform; contact-info enrichers (`vdrmota/contact-info-scraper`
-  etc.); regional registries; Yandex/DuckDuckGo search variants.
-- Trade-off: bigger catalog = more lazy-load weight when Phase 3 reads
-  the file. Mitigate by adding `references/tools-extras.md` with the
-  long tail, keeping `tools.md` focused on the top-tier actors.
-
-**Methodology rule (folded in from killed R16):** every entry MUST
-be verified against `apify actors info <id> --input --json` before
-landing in `tools.md`. The Apify input schema is the authority;
-guessed shapes silently produce empty results (the v0.2.1 lesson).
-Document the actual shape from the schema, not what "looks
-reasonable".
-
-**Phase 3 invocation pattern:** `apify` CLI is sufficient. Pattern is
-`apify call <id> --input '<json>' --json --silent` — no wrapper
-script needed. Output is the actor's native dataset; if uniform
-envelope shaping is needed downstream, do it with a one-liner jq
-filter, not a Node runner.
-
-**Effort:** M. Mostly cataloguing + verification.
+**Effort:** S. Pure SKILL.md prose, ≤30 lines added.
 
 ### R4. Brave Search + Parallel AI as seed backends ✓ done 2026-04-29
 **Shipped:**
@@ -198,36 +143,46 @@ audit log is persisted).
 
 ## P2 — Real but lower priority
 
-### R17. MCP client for non-typed-CLI services [NEW 2026-04-29]
-**Problem.** Some retrieval / scrape services expose only an MCP
-endpoint (e.g. Bright Data's MCP server, future MCP-only providers).
-Today we have no path to call them — they fall outside the typed-CLI
-boundary. The reference skill ships a small Python MCP client
-(Streamable HTTP / SSE) for exactly this case.
+### R8. Opt-in sub-agent fan-out for Phase 3 [DEMOTED + RESCOPED 2026-04-29]
+**Was:** "Swarm Mode default" — promote fan-out to default Phase-3 path.
+**Now:** opt-in only. Operator triggers via explicit request (e.g.
+`--swarm`); sequential remains the default.
 
-**Scope:**
-- `scripts/mcp-client.py` — JSON-RPC over Streamable HTTP/SSE, list
-  tools + call tool. No external deps (stdlib only).
-- Same JSON envelope as typed CLIs.
-- SKILL.md addition: when a typed CLI exists for a service, prefer it;
-  use the MCP client only when no typed CLI is available.
-- Auth via env var (`<SERVICE>_MCP_URL` containing the token in the URL,
-  or a separate `<SERVICE>_MCP_TOKEN` — TBD).
+**Rationale for the rescope.** No wall-clock SLA driving us; Phase-1
+parallelism already exists at the shell level (`first-volley.sh`); the
+only place sub-agents help meaningfully is Phase-3 per-platform
+prompt-shaping; and "default-on swarm" is a footgun against the
+Phase-2 security invariant (sub-agents must not touch internal intel).
 
-**Why P2, not P1:** contingent on us actually wanting MCP-only
-services. Bright Data's typed CLI exists (`brightdata`); the MCP path
-is mostly useful for newer providers we haven't onboarded. Re-rank to
-P1 if a target service appears that has no CLI.
+**Scope when invoked:**
+- Up to 5 sub-agents, each scoped to one platform cluster (video /
+  authwalled-deep / open-graph-social / regional+maps / deep-research).
+- Each sub-agent reads from `stages/01-seed.json` (R19) and writes to
+  `stages/03-platform-<task>.json` (R19). No conversation-context
+  hand-off.
+- Per-agent budget cap ≤ $0.15; total ≤ $0.50.
+- Phase 2 (internal intel) is **never** delegated to a sub-agent.
 
-**Effort:** S-M.
+**Effort:** M. Concrete protocol + opt-in flag in SKILL.md. Builds on
+R19 (stage outputs are the IPC).
 
-### R9. Caching of identical queries within a session
-Right now if two phases ask the same thing, we pay twice. Add hash-keyed
-cache under `./osint-<slug>/.cache/`. Worth doing once Swarm Mode (R8)
-lands — the duplicate-query rate goes up when sub-agents work in
-parallel.
+### R2.1. Apify actor catalog — methodology rule + on-demand growth [DEMOTED 2026-04-29]
+**Was:** "Expand to reference breadth (~55 actors)".
+**Now:** kill the breadth target. The valuable bit is the methodology;
+catalog grows on-demand when Phase 3 actually needs an actor we
+haven't documented yet.
 
-**Effort:** S.
+**Methodology rule (permanent, not a one-time sprint):** every
+`references/tools.md` entry MUST be verified against
+`apify actors info <id> --input --json` before landing. The Apify
+input schema is the authority; guessed shapes silently produce empty
+results (the v0.2.1 lesson). Document the actual shape, not what
+looks reasonable.
+
+**Phase 3 invocation pattern (no wrapper needed):**
+`apify call <id> --input '<json>' --json --silent`.
+
+**Effort:** S per actor added; permanent rule.
 
 ---
 
@@ -279,6 +234,25 @@ and wants envelope uniformity across them; that constraint doesn't
 apply to us (we use typed CLIs uniformly). The "input shape drift"
 problem (v0.2.1 → v0.2.2 patch cycle) isn't fixed by a runner either —
 that's a methodology problem, folded into R2.1.
+
+### R17. MCP client for non-typed-CLI services ✗ killed 2026-04-29
+**Original idea:** lightweight Python MCP client (Streamable HTTP/SSE)
+for services that expose only an MCP endpoint.
+
+**Why killed:** YAGNI. No concrete MCP-only target service. Bright
+Data has a typed CLI; future MCP-only providers are speculative. The
+reference skill has it because they wanted to call Bright Data via
+MCP for some operations; for us, the typed CLI is sufficient. Re-open
+if and when a target service appears that has no CLI path.
+
+### R9. Caching of identical queries within a session ✗ killed 2026-04-29
+**Original idea:** hash-keyed cache under `./osint-<slug>/.cache/`
+to avoid paying twice for the same query.
+
+**Why killed:** YAGNI. No measured duplicate-query rate; the phase
+sequence is linear so within-run repeats should be rare. Classic
+over-engineering bait. Re-open if telemetry from real runs shows a
+non-trivial duplicate rate.
 
 ---
 
