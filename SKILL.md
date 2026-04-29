@@ -117,13 +117,17 @@ it does not silently fall back.
 4. If no `subject_name` — use `AskUserQuestion` to collect one. Never guess.
 5. Decide the minimum viable toolset for this run:
    - Need ≥ 1 of: `perplexity`, `tavily`, `exa`, `jina`, or built-in `WebSearch`.
-   - If none are available, stop and report.
-6. **Persist the stage artifact.** `Write` `./osint-<slug>/stages/00-tooling.json`:
+6. **Persist the stage artifact** (always, including on toolset failure —
+   the file is the diagnostic record of the early-stop). `Write`
+   `./osint-<slug>/stages/00-tooling.json`:
    ```json
    {"schema_version":"1","phase":0,"clis_available":["perplexity","jina"],
     "env_vars_set":["PERPLEXITY_API_KEY","JINA_API_KEY"],"has_search":true,
     "subject_name":"<name>","context":["..."],"slug":"<slug>","ts":"<ISO>"}
    ```
+7. If `has_search` is false — stop and report. The 00-tooling.json artifact
+   is left on disk so the operator can see exactly which CLIs/env vars
+   were missing.
 
 ---
 
@@ -161,7 +165,8 @@ data touched in this phase.
    (platforms). Default: ask the operator via `AskUserQuestion`.
 6. **Stage artifact:** `stages/01-seed.json` (already written by
    `merge-volley.sh` in step 1). If you fell back to the manual path or
-   `WebSearch`, write the merged result yourself in the same shape.
+   `WebSearch`, `Write` `./osint-<slug>/stages/01-seed.json` yourself in
+   the same `{schema_version, merged_from, rows[], answers[]}` shape.
 
 **Rate-limiting rule:** no more than 4 concurrent outbound calls across this
 whole phase (one per available search CLI). Staggered starts of 0.5 s.
@@ -175,21 +180,6 @@ Before any of this runs, **read** `references/phase-2-gates.md`. This phase
 touches your own local data (chat history, email, vault) and is behind four
 explicit gates. If any gate fails, the phase stops and Phase 3 proceeds
 **without** internal data.
-
-**Stage artifact:** `stages/02-internal.gates.log` — append-only audit
-trail of gate state transitions. Lines are ASCII-safe and contain **no
-content** from internal sources, only gate decisions. Format:
-
-```
-<ISO-8601-UTC> gate-1 result=<yes|skip|cancel|n/a>
-<ISO-8601-UTC> gate-2 written findings=<N>
-<ISO-8601-UTC> gate-3 result=<approved|skip|still-redacting>
-<ISO-8601-UTC> gate-4 result=<passed|failed-regex|failed-redaction-marker|failed-missing-file>
-```
-
-Append one line per gate decision as you reach it. Phase 2 raw findings
-go to `./osint-<slug>/phase-2-raw.md` (operator workspace) — **never** to
-`stages/`.
 
 ### Gate 1 — Pre-execution approval
 Use `AskUserQuestion` with the exact question:
@@ -253,6 +243,27 @@ Before reading the promoted file:
   (it's tagged Grade "I" — internal, operator-approved, not cross-referenced).
 - Audit log line added to the dossier: *"Internal intelligence consulted:
   yes, approved YYYY-MM-DD. Sources: <channels>, N findings promoted."*
+
+### Stage artifact
+
+`stages/02-internal.gates.log` — append-only audit trail of gate state
+transitions. Lines are ASCII-safe and contain **no content** from
+internal sources, only gate decisions.
+
+The first line on every skill invocation that enters Phase 2 is a
+run-start delimiter so re-runs don't interleave silently:
+
+```
+# run-start <ISO-8601-UTC> slug=<slug>
+<ISO-8601-UTC> gate-1 result=<yes|skip|cancel|n/a>
+<ISO-8601-UTC> gate-2 written findings=<N>
+<ISO-8601-UTC> gate-3 result=<approved|skip|still-redacting>
+<ISO-8601-UTC> gate-4 result=<passed|failed-regex|failed-redaction-marker|failed-missing-file>
+```
+
+Append one line per gate decision as you reach it. Phase 2 raw findings
+go to `./osint-<slug>/phase-2-raw.md` (operator workspace) — **never** to
+`stages/`.
 
 ---
 
@@ -460,10 +471,18 @@ Source the audit-log spend total from `bash scripts/spend-total.sh "$slug"`
 (returns `{total_usd, calls, providers}` JSON), and the elapsed time from
 the wall-clock between Phase 0 start and Phase 7 render.
 
-The audit log's `Stage manifest` field lists the produced
-`stages/0N-*` artifacts (one entry per phase that ran). The dossier file
-itself stays at the canonical top-level path (`./osint-<slug>/dossier.md`,
-`./osint-<slug>/dossier.facts.jsonl`) — no mirror under `stages/`.
+The audit log's `Stage manifest` field is a **comma-separated list of
+relative paths** (relative to `./osint-<slug>/`), one per artifact that
+the run actually produced. Example:
+
+```
+Stage manifest: stages/00-tooling.json, stages/01-seed.json, stages/02-internal.gates.log, stages/03-platform-linkedin.json, stages/04-cross-ref.json, stages/06-gaps.json
+```
+
+Skipped phases (e.g. Phase 5 when psychoprofile wasn't requested) do
+not appear. The dossier file itself stays at the canonical top-level
+path (`./osint-<slug>/dossier.md`, `./osint-<slug>/dossier.facts.jsonl`)
+— no mirror under `stages/`, and not listed in the manifest.
 
 ---
 
