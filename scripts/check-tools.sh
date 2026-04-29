@@ -52,7 +52,7 @@ check_bin perplexity   PERPLEXITY_API_KEY
 check_bin exa          EXA_API_KEY
 check_bin tavily       TAVILY_API_KEY
 check_bin jina         JINA_API_KEY
-check_bin parallel     PARALLEL_API_KEY
+check_bin parallel-cli PARALLEL_API_KEY
 
 say ""
 say "Scraping / platform extraction:"
@@ -67,7 +67,7 @@ check_bin curl ""
 say ""
 # Require at least one search provider
 has_search=0
-for bin in perplexity exa tavily jina parallel; do
+for bin in perplexity exa tavily jina parallel-cli; do
   if command -v "$bin" >/dev/null 2>&1; then
     has_search=1
     break

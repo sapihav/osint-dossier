@@ -143,9 +143,68 @@ scrapers, contact-info enrichers) and additional platforms.
 **Effort:** M. Mostly cataloguing + verification; pairs naturally with
 R16 (runner makes the catalog purely informational).
 
-### R4. Brave Search + Parallel AI as seed backends ◐ partial 2026-04-27
-**Status:** Brave fallback shipped via `WebSearch`. Parallel AI typed
-CLI not yet published; closes when `sapihav/parallel-cli` lands.
+### R4. Brave Search + Parallel AI as seed backends ✓ done 2026-04-29
+**Shipped:**
+- Brave: `WebSearch` fallback (Phase 1) — done 2026-04-27.
+- Parallel AI: Parallel published `parallel-cli` via
+  [parallel-web/parallel-web-tools](https://github.com/parallel-web/parallel-web-tools).
+  Wired into `install.sh` (`curl -sSL https://parallel.ai/install.sh
+  | bash`), `check-tools.sh`, README Dependencies, and SKILL.md
+  frontmatter allow-list (binary renamed `parallel` → `parallel-cli`
+  to match upstream and avoid collision with GNU parallel).
+
+### R19. Stage-by-stage artifact persistence [NEW 2026-04-29]
+**Problem.** Today only some phase outputs land on disk
+(`seed.json` from Phase 1 via R6, `dossier.md` + `dossier.facts.jsonl`
+from Phase 7 via R12, `spend.jsonl` via R7). Phases 3, 4, 5, 6
+produce data that flows phase-to-phase in the agent's context but is
+never persisted. If a run is interrupted, sub-agents fan out, or the
+operator wants to audit what each stage produced, the data is gone.
+
+**Operator requirement:** every stage's output must land on disk so
+that any phase can be re-run from the prior stage's artifact without
+redoing earlier work.
+
+**Scope:**
+- All phase outputs land under `./osint-<slug>/stages/` with a
+  consistent naming convention:
+  - `00-tooling.json` — Phase 0 preflight result (CLIs available, env
+    vars set, has_search bool).
+  - `01-seed.json` — Phase 1 merged search results (already exists;
+    move under `stages/` or symlink for back-compat).
+  - `02-internal.gates.log` — Phase 2 4-gate audit trail (NOT the
+    content; just gate state). Already file-based per the gate
+    protocol.
+  - `03-platform-<platform>.json` — Phase 3 per-platform extraction
+    output (one file per platform: linkedin, instagram, facebook,
+    tiktok, youtube, telegram, web).
+  - `04-cross-ref.json` — Phase 4 graded fact list pre-render (the
+    same shape as `dossier.facts.jsonl` plus working notes).
+  - `05-psychoprofile.json` — Phase 5 raw structured output (only if
+    psychoprofile ran).
+  - `06-gaps.json` — Phase 6 gap analysis output.
+  - `07-dossier.md` + `07-dossier.facts.jsonl` — Phase 7 (already
+    exist at the top level; mirror or move).
+- All writes atomic (write to `*.tmp` then `mv`).
+- Phase N reads its input from `stages/0(N-1)-*.json`, not from
+  conversation context — makes phase-resumability real.
+- SKILL.md updated to instruct the agent to write each stage's
+  artifact before proceeding.
+- `assets/dossier-template.md` audit log gains a one-line stage
+  manifest pointing at the artifacts.
+
+**Why P1 / why first:**
+Foundational for R8 (sub-agents must write per-stage), R16 (actor
+runner output is a stage artifact), and R18 (escalation flow decides
+"ascend?" by reading the prior stage's gaps file). Implementing R19
+first means R8/R16/R18 can be built on top instead of retrofitted.
+
+**Effort:** M. Mostly SKILL.md prose + a small helper for
+atomic-write-and-checkpoint, optional.
+
+**Not in scope:** content snapshots of internal-intel data (Phase 2
+content stays out of disk per the 4-gate protocol; only the gate
+audit log is persisted).
 
 ---
 

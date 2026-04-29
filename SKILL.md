@@ -6,7 +6,7 @@ allowed-tools:
   - Bash(jina:*)
   - Bash(apify:*)
   - Bash(brightdata:*)
-  - Bash(parallel:*)
+  - Bash(parallel-cli:*)
   - Bash(.claude/skills/osint-dossier/scripts/check-tools.sh:*)
   - Bash(.claude/skills/osint-dossier/scripts/first-volley.sh:*)
   - Bash(.claude/skills/osint-dossier/scripts/merge-volley.sh:*)

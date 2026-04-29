@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.1 — 2026-04-29
+
+R4 closed — Parallel AI typed CLI is now available.
+
+- Added `parallel-cli` to `scripts/install.sh` registry. Install
+  method: `curl -sSL https://parallel.ai/install.sh | bash` (the
+  upstream installer at `parallel.ai/install.sh` redirects to the
+  GitHub release of `parallel-web/parallel-web-tools`). No Python or
+  Go required — the standalone binary supports `search`, `extract`,
+  `research`, and `enrich`.
+- Renamed binary `parallel` → `parallel-cli` in `check-tools.sh`,
+  `SKILL.md` frontmatter `allowed-tools` (`Bash(parallel:*)` →
+  `Bash(parallel-cli:*)`), and README Dependencies. Matches upstream
+  and avoids collision with GNU parallel.
+- README Dependencies table gains a `parallel-cli` row.
+- ROADMAP: R4 marked done. R19 added (stage-by-stage artifact
+  persistence — operator requirement; foundational for R8/R16/R18).
+
+---
+
 ## v0.3.0 — 2026-04-29
 
 R1 — install contract.

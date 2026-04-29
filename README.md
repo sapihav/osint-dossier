@@ -45,11 +45,12 @@ bash scripts/install.sh
 | `perplexity` | Search / retrieval | `PERPLEXITY_API_KEY` | `curl \| bash` from [`sapihav/perplexity-cli`](https://github.com/sapihav/perplexity-cli) release |
 | `exa` | Search / retrieval | `EXA_API_KEY` | `curl \| bash` from [`sapihav/exa-cli`](https://github.com/sapihav/exa-cli) release |
 | `tavily` | Search / retrieval | `TAVILY_API_KEY` | `curl \| bash` from [`sapihav/tavily-cli`](https://github.com/sapihav/tavily-cli) release |
+| `parallel-cli` | Search / retrieval / deep research | `PARALLEL_API_KEY` | `curl \| bash` from [parallel-web/parallel-web-tools](https://github.com/parallel-web/parallel-web-tools) release |
 | `jina` | Reader / search / deepsearch | `JINA_API_KEY` | `pipx install jina` |
 | `apify` | Platform scraping (LinkedIn / IG / FB / TikTok / YouTube / Telegram / Maps) | `APIFY_TOKEN` | `npm install -g apify-cli` |
 | `brightdata` | Authwalled platform scraping fallback | `BRIGHTDATA_API_KEY` | `npm install -g @brightdata/cli` |
 
-**At least one search provider** (perplexity / exa / tavily / jina) is
+**At least one search provider** (perplexity / exa / tavily / parallel-cli / jina) is
 required for Phase 1; the skill fails preflight otherwise. Scrape
 providers are optional — Phase 3 degrades gracefully if neither is on
 PATH.

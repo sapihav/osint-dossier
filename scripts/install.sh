@@ -31,6 +31,7 @@ TOOLS=(
   "perplexity|curl|https://raw.githubusercontent.com/sapihav/perplexity-cli/main/install.sh"
   "exa|curl|https://raw.githubusercontent.com/sapihav/exa-cli/main/install.sh"
   "tavily|curl|https://raw.githubusercontent.com/sapihav/tavily-cli/main/install.sh"
+  "parallel-cli|curl|https://parallel.ai/install.sh"
   "apify|npm|apify-cli"
   "brightdata|npm|@brightdata/cli"
   "jina|pipx|jina"
