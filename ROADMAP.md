@@ -79,28 +79,6 @@ DEFAULT and specifies a concrete spawn protocol; we don't.
 **Effort:** L. Touches SKILL.md substantially. ≤500 LOC achievable
 because the sub-agent spawn primitive lives in the host agent runtime.
 
-### R16. Universal Apify actor runner [NEW 2026-04-29]
-**Problem.** Today Phase 3 calls `apify` CLI directly and the operator /
-agent has to know each actor's input shape. The v0.2.1 → v0.2.2 patch
-cycle (correcting `profileUrls` → `queries`, `usernames` → `twitterHandles`,
-etc.) is exactly the failure mode this prevents. The reference skill ships
-a single `run-actor.sh <actor_id> <json_input>` entry point that handles
-auth, version, and output formatting uniformly.
-
-**Scope:**
-- `scripts/run-actor.sh <actor_id> <json_input> [--output <path>] [--format csv|json]`.
-- Implementation in Node (`scripts/run_actor.js`) using the Apify SDK —
-  bash wrapper for env loading + arg shaping.
-- Output normalised to the same JSON envelope as the typed CLIs
-  (`schema_version`, `result`, `cost_usd`, `elapsed_ms`).
-- `references/tools.md` rewrites: per actor we now only need
-  `actor_id` + `input_shape_example` — runner does the call, so the
-  catalog is documentation, not orchestration glue.
-- `package.json` added under `scripts/` for the runner's deps.
-
-**Effort:** M-L. Adds Node prerequisite (already listed under npm CLIs,
-but a runner is heavier than a one-shot install).
-
 ### R18. Research Escalation Flow — formalised cost/depth tiers [NEW 2026-04-29]
 **Problem.** SKILL.md mentions "use cheap before expensive" in passing
 but doesn't formalise it. The reference skill has explicit Levels 1–4
@@ -134,14 +112,24 @@ scrapers, contact-info enrichers) and additional platforms.
 - Add to `references/tools.md`: comments / tagged / hashtag scrapers
   per platform; contact-info enrichers (`vdrmota/contact-info-scraper`
   etc.); regional registries; Yandex/DuckDuckGo search variants.
-- Each entry verified against `apify actors info --input <id>` per the
-  v0.2.2 lesson — input shapes are not guessable.
 - Trade-off: bigger catalog = more lazy-load weight when Phase 3 reads
   the file. Mitigate by adding `references/tools-extras.md` with the
   long tail, keeping `tools.md` focused on the top-tier actors.
 
-**Effort:** M. Mostly cataloguing + verification; pairs naturally with
-R16 (runner makes the catalog purely informational).
+**Methodology rule (folded in from killed R16):** every entry MUST
+be verified against `apify actors info <id> --input --json` before
+landing in `tools.md`. The Apify input schema is the authority;
+guessed shapes silently produce empty results (the v0.2.1 lesson).
+Document the actual shape from the schema, not what "looks
+reasonable".
+
+**Phase 3 invocation pattern:** `apify` CLI is sufficient. Pattern is
+`apify call <id> --input '<json>' --json --silent` — no wrapper
+script needed. Output is the actor's native dataset; if uniform
+envelope shaping is needed downstream, do it with a one-liner jq
+filter, not a Node runner.
+
+**Effort:** M. Mostly cataloguing + verification.
 
 ### R4. Brave Search + Parallel AI as seed backends ✓ done 2026-04-29
 **Shipped:**
@@ -275,8 +263,22 @@ for regression testing.
 **Why killed:** R14 is regression protection for graded/scored
 algorithms. This skill is mostly prose in SKILL.md and reference docs;
 the only "algorithmic" surface is Phase 4 grading + Phase 6 coverage
-scoring, which don't change often. Re-open if R8 / R16 / R18 introduce
+scoring, which don't change often. Re-open if R8 / R18 introduce
 non-trivial logic that warrants regression coverage.
+
+### R16. Universal Apify actor runner ✗ killed 2026-04-29
+**Original idea:** ship `scripts/run-actor.sh` + `scripts/run_actor.js`
+as a uniform entry point for any Apify actor.
+
+**Why killed:** the typed `apify` CLI already provides every capability
+a runner would — `apify call <id> --input '{...}' --json` for any
+actor, `apify actors info <id> --input --json` to fetch the input
+schema, plus `--silent` / `-m` / `-t` knobs. The reference skill
+ships a Node runner because it uses HTTP-wrapper shells everywhere
+and wants envelope uniformity across them; that constraint doesn't
+apply to us (we use typed CLIs uniformly). The "input shape drift"
+problem (v0.2.1 → v0.2.2 patch cycle) isn't fixed by a runner either —
+that's a methodology problem, folded into R2.1.
 
 ---
 
