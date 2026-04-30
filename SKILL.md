@@ -119,12 +119,14 @@ closes them, escalate only those.
 | L1 | ~$0 | `WebSearch`, `perplexity` (sonar), `exa search`, `tavily` (basic) |
 | L2 | ~$0.01 | `jina read`, `tavily extract` |
 | L3 | ~$0.05–0.10 | `apify call <id>` per-platform extraction |
-| L4 | ~$0.25–0.50 | `perplexity` (deep), `exa` (deep), `parallel-cli` (deep) |
+| L4 | ~$0.50–$5 | `perplexity` (deep), `exa` (deep), `parallel-cli` (deep) |
 
 Phases 1 and 3 default to L1–L3 by construction. L4 is reserved for
 gap-targeted re-runs as above. The budget cap (≤ $0.50, see "Budget &
-stopping") still applies — L4 calls are cheap individually but a
-fan-out across gaps can blow the cap.
+stopping") still applies — a single L4 call can already meet or exceed
+the cap (Perplexity Deep in particular runs in the multi-dollar
+range), so escalate one gap at a time and check `spend-total.sh`
+before fanning out.
 
 ---
 

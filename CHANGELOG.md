@@ -11,14 +11,16 @@ R18 closed — research escalation flow.
     `tavily` (basic).
   - **L2** (~$0.01): `jina read`, `tavily extract`.
   - **L3** (~$0.05–0.10): `apify call <id>` per-platform extraction.
-  - **L4** (~$0.25–0.50): `perplexity` (deep), `exa` (deep),
-    `parallel-cli` (deep).
+  - **L4** (~$0.50–$5): `perplexity` (deep), `exa` (deep),
+    `parallel-cli` (deep). Perplexity Deep in particular runs in the
+    multi-dollar range — a single call can already meet or exceed the
+    $0.50 budget cap.
 - Single rule: ascend only when Phase 6 flags an unfilled
   high-priority gap that the next tier can plausibly close. Read
   `./osint-<slug>/stages/06-gaps.json` (R19), pick gaps with no
   L1–L3 path that closes them, escalate only those. Budget cap (≤
-  $0.50, see "Budget & stopping") still binds — L4 fan-out can blow
-  it cheaply.
+  $0.50, see "Budget & stopping") still binds — escalate one gap at
+  a time and check the spend ledger before fanning out.
 - Phases 1 and 3 default to L1–L3 by construction. L4 is for
   gap-targeted re-runs only — no per-level decision trees or
   audit-log changes were added.

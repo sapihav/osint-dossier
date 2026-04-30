@@ -63,7 +63,7 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
   "Tool layer" and "Phase 0"). 4-row table: L1 (~$0) `WebSearch` /
   Perplexity Sonar / Exa search / Tavily basic; L2 (~$0.01) `jina read`
   / Tavily extract; L3 (~$0.05–0.10) `apify call <id>`; L4
-  (~$0.25–0.50) Perplexity Deep / Exa Deep / Parallel Deep.
+  (~$0.50–$5) Perplexity Deep / Exa Deep / Parallel Deep.
 - One rule: ascend only when Phase 6 flags an unfilled high-priority
   gap that the next tier can plausibly close, reading the gap list from
   `./osint-<slug>/stages/06-gaps.json` (R19).
