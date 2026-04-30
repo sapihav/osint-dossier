@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-04-29 (R19) · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-04-30 (R18) · Owner: @sapihav
 
 ---
 
@@ -57,24 +57,18 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 
 ## P1 — Parity gaps that actually move the needle
 
-### R18. Research Escalation Flow — small SKILL.md table [NEW 2026-04-29, scoped down]
-**Problem.** SKILL.md mentions "use cheap before expensive" in passing
-but doesn't formalise it.
-
-**Scope (intentionally small):**
-- Add a 4-row table in SKILL.md mapping providers to cost tiers:
-  - L1 (~$0): `WebSearch`, Perplexity Sonar, Exa search, Tavily basic.
-  - L2 (~$0.01): `jina read`, Tavily extract.
-  - L3 (~$0.05–0.10): `apify call <id>` for platform extraction.
-  - L4 (~$0.25–0.50): Perplexity Deep / Exa Deep / Parallel Deep.
-- One rule: "ascend only when Phase 6 flags unfilled high-priority
-  slots".
-
-That's it — no new section heading hierarchy, no per-level decision
-trees, no audit-log changes. Goal is to make the existing prose rule
-concrete, not to introduce new ceremony.
-
-**Effort:** S. Pure SKILL.md prose, ≤30 lines added.
+### R18. Research Escalation Flow — small SKILL.md table ✓ done 2026-04-30
+**Shipped:**
+- New `## Research escalation — cost tiers` section in SKILL.md (between
+  "Tool layer" and "Phase 0"). 4-row table: L1 (~$0) `WebSearch` /
+  Perplexity Sonar / Exa search / Tavily basic; L2 (~$0.01) `jina read`
+  / Tavily extract; L3 (~$0.05–0.10) `apify call <id>`; L4
+  (~$0.25–0.50) Perplexity Deep / Exa Deep / Parallel Deep.
+- One rule: ascend only when Phase 6 flags an unfilled high-priority
+  gap that the next tier can plausibly close, reading the gap list from
+  `./osint-<slug>/stages/06-gaps.json` (R19).
+- No new heading hierarchy beyond the single section, no per-level
+  decision trees, no audit-log changes. ~17 lines added to SKILL.md.
 
 ### R4. Brave Search + Parallel AI as seed backends ✓ done 2026-04-29
 **Shipped:**

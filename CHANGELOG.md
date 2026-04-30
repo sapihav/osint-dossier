@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.4.1 — 2026-04-30
+
+R18 closed — research escalation flow.
+
+- New `## Research escalation — cost tiers` section in SKILL.md
+  (between "Tool layer" and "Phase 0"). Four cost tiers mapped to
+  providers:
+  - **L1** (~$0): `WebSearch`, `perplexity` (sonar), `exa search`,
+    `tavily` (basic).
+  - **L2** (~$0.01): `jina read`, `tavily extract`.
+  - **L3** (~$0.05–0.10): `apify call <id>` per-platform extraction.
+  - **L4** (~$0.25–0.50): `perplexity` (deep), `exa` (deep),
+    `parallel-cli` (deep).
+- Single rule: ascend only when Phase 6 flags an unfilled
+  high-priority gap that the next tier can plausibly close. Read
+  `./osint-<slug>/stages/06-gaps.json` (R19), pick gaps with no
+  L1–L3 path that closes them, escalate only those. Budget cap (≤
+  $0.50, see "Budget & stopping") still binds — L4 fan-out can blow
+  it cheaply.
+- Phases 1 and 3 default to L1–L3 by construction. L4 is for
+  gap-targeted re-runs only — no per-level decision trees or
+  audit-log changes were added.
+- ROADMAP: R18 marked done.
+
+---
+
 ## v0.4.0 — 2026-04-29
 
 R19 closed — stage-by-stage artifact persistence.

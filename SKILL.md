@@ -106,6 +106,28 @@ it does not silently fall back.
 
 ---
 
+## Research escalation — cost tiers
+
+Use the cheapest tier that can fill a slot. **Ascend only when Phase 6
+flags an unfilled high-priority gap that the next tier can plausibly
+close** — never escalate as the default. Read the gap list from
+`./osint-<slug>/stages/06-gaps.json`; pick gaps with no L1–L3 path that
+closes them, escalate only those.
+
+| Tier | Cost / call | Providers |
+|---|---|---|
+| L1 | ~$0 | `WebSearch`, `perplexity` (sonar), `exa search`, `tavily` (basic) |
+| L2 | ~$0.01 | `jina read`, `tavily extract` |
+| L3 | ~$0.05–0.10 | `apify call <id>` per-platform extraction |
+| L4 | ~$0.25–0.50 | `perplexity` (deep), `exa` (deep), `parallel-cli` (deep) |
+
+Phases 1 and 3 default to L1–L3 by construction. L4 is reserved for
+gap-targeted re-runs as above. The budget cap (≤ $0.50, see "Budget &
+stopping") still applies — L4 calls are cheap individually but a
+fan-out across gaps can blow the cap.
+
+---
+
 ## Phase 0 — Preflight
 
 1. Run `bash .claude/skills/osint-dossier/scripts/check-tools.sh` once. Log which
