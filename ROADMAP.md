@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-04-30 (R18) · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-05-01 (R18) · Owner: @sapihav
 
 ---
 
@@ -64,9 +64,12 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
   Perplexity Sonar / Exa search / Tavily basic; L2 (~$0.01) `jina read`
   / Tavily extract; L3 (~$0.05–0.10) `apify call <id>`; L4
   (~$0.50–$5) Perplexity Deep / Exa Deep / Parallel Deep.
-- One rule: ascend only when Phase 6 flags an unfilled high-priority
-  gap that the next tier can plausibly close, reading the gap list from
-  `./osint-<slug>/stages/06-gaps.json` (R19).
+- One rule: ascend only when Phase 6 flags an unfilled gap whose
+  closure would flip a failed coverage check, and the next tier can
+  plausibly close it. Eligibility is derived from
+  `stages/06-gaps.json` `coverage.failed[]` (R19) — no separate
+  priority field needed. Depth-score-only shortfalls don't justify L4
+  spend.
 - No new heading hierarchy beyond the single section, no per-level
   decision trees, no audit-log changes. ~17 lines added to SKILL.md.
 

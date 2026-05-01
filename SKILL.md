@@ -109,10 +109,11 @@ it does not silently fall back.
 ## Research escalation — cost tiers
 
 Use the cheapest tier that can fill a slot. **Ascend only when Phase 6
-flags an unfilled high-priority gap that the next tier can plausibly
-close** — never escalate as the default. Read the gap list from
-`./osint-<slug>/stages/06-gaps.json`; pick gaps with no L1–L3 path that
-closes them, escalate only those.
+flags an unfilled gap whose closure would flip a failed coverage
+check, and the next tier can plausibly close it** — never escalate as
+the default. Read `./osint-<slug>/stages/06-gaps.json`: a gap is
+escalation-eligible iff it maps to an entry in `coverage.failed[]`.
+Gaps tied only to depth-score shortfalls do not justify L4 spend.
 
 | Tier | Cost / call | Providers |
 |---|---|---|

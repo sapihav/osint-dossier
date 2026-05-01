@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.4.2 — 2026-05-01
+
+R18 follow-up — escalation rule grounded in existing schema.
+
+- The R18 rule referenced "high-priority" gaps, but
+  `stages/06-gaps.json` has no `priority` field — the agent had
+  nothing to filter on. Rewrote the rule to derive eligibility from
+  `coverage.failed[]` (which Phase 6 already populates):
+  > **Ascend only when Phase 6 flags an unfilled gap whose closure
+  > would flip a failed coverage check, and the next tier can
+  > plausibly close it.**
+- A gap is escalation-eligible iff it maps to an entry in
+  `coverage.failed[]`. Gaps tied only to depth-score shortfalls do
+  not justify L4 spend.
+- No schema changes — uses fields Phase 6 already produces. ROADMAP
+  R18 entry updated to match.
+
+---
+
 ## v0.4.1 — 2026-04-30
 
 R18 closed — research escalation flow.
