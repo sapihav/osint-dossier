@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-05-01 (R18) · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-05-01 (R20 added) · Owner: @sapihav
 
 ---
 
@@ -56,6 +56,50 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 ---
 
 ## P1 — Parity gaps that actually move the needle
+
+### R20. Phase 6 redesign — unified fact-slot model [NEW 2026-05-01]
+**Problem.** Phase 6 carries two parallel data structures describing
+the same thing: `coverage[]` (9 hardcoded binary checks) and `gaps[]`
+(open-ended free-text). They are supposed to be related, but the
+relationship is not enforced anywhere — that is why R18 needed three
+commits to nail down semantics ("high-priority" → `coverage.failed[]`
+→ canonical IDs), why `flips_check` keeps surfacing as a band-aid,
+and why "ascend on Phase 6 gaps" requires the agent to interpret
+which gap-string maps to which check. Five distinct gap kinds
+(never-found, stale, low-grade, contradicted, undersourced) collapse
+into one free-text "gap" string. Depth score is a third parallel
+scoring system with seven hardcoded dimensions and no link to
+coverage.
+
+**Direction (locked at design time, not now):** replace
+`coverage` + `gaps` + `depth_score` with one shape — a declared
+**fact-slot catalog** in `references/slots.md` plus per-slot status
+rows in `stages/06-gaps.json`. Each slot has a target (`min_grade`,
+`min_sources`, `max_age_days`, …), a current state, a met/unmet
+status, and — when unmet — a remediation tier ladder. Coverage,
+depth, gap list, and R18 escalation all derive from one filter on
+this single shape. New slots are added by editing the catalog, not
+Phase 6 prose.
+
+**Touches:** Phase 6 (rewrite), Phase 4 (graded facts feed slots),
+Phase 7 template (slot-keyed render), `stages/06-gaps.json` schema
+bump v1 → v2, new `references/slots.md`. Roughly ~150 LOC across 4
+files.
+
+**Why `/fsm-spec` first.** Phase 6 has combinatorial state
+(slot × grade × age × source-count × tier-tried) — exactly the "we
+missed a case" pattern CLAUDE.md flags. Run `/fsm-spec` to lock
+invariants → macro-states → events → transitions before
+`system-architect` drafts a schema. Slots are the working
+hypothesis; the spec should validate or refute that, not hard-code
+the answer.
+
+**Not a v1 → v2 in-place evolution.** Either ship v1 (current,
+v0.4.3) or ship v2 (redesigned). Don't try to migrate field-by-field
+across commits — that path is what produced the R18 review-loop
+churn.
+
+**Effort:** M. Roughly 3 sessions — spec, design, implement.
 
 ### R18. Research Escalation Flow — small SKILL.md table ✓ done 2026-04-30
 **Shipped:**
