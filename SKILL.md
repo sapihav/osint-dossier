@@ -423,15 +423,22 @@ If Phase 5 was skipped, do not create the file (its absence is the signal).
 
 ### Coverage (9 checks — pass/fail)
 
-1. Subject correctly identified (not a namesake)?
-2. Current role/organisation confirmed?
-3. At least 2 public platforms with profile?
-4. At least 1 contact method (public)?
-5. Career history: 2+ verifiable positions?
-6. Current location established?
-7. At least 1 photograph found?
-8. No unresolved contradictions between sources?
-9. Internal intelligence phase: either run-and-promoted or explicitly skipped?
+Each check has a **canonical ID**. Phase 6 emits failed IDs in
+`coverage.failed[]` (see Stage artifact below). These IDs are
+load-bearing — R18 escalation reads them, downstream consumers may
+filter on them — so do not invent new strings.
+
+| ID | Check |
+|---|---|
+| `check_1_identity` | Subject correctly identified (not a namesake)? |
+| `check_2_role` | Current role/organisation confirmed? |
+| `check_3_platforms` | At least 2 public platforms with profile? |
+| `check_4_contact` | At least 1 contact method (public)? |
+| `check_5_career` | Career history: 2+ verifiable positions? |
+| `check_6_location` | Current location established? |
+| `check_7_photo` | At least 1 photograph found? |
+| `check_8_contradictions` | No unresolved contradictions between sources? |
+| `check_9_internal` | Internal intelligence phase: either run-and-promoted or explicitly skipped? |
 
 ### Depth score (weighted, 1–10)
 

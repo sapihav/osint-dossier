@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.4.3 — 2026-05-01
+
+Phase 6 — pin canonical IDs for the 9 coverage checks.
+
+- The 9 coverage checks were previously enumerated in prose only; the
+  example `coverage.failed[]` output used IDs like `check_4_contact`
+  / `check_7_photo` but the convention was never formalised. Two
+  runs could emit different ID strings for the same check, silently
+  breaking R18 escalation (which reads `coverage.failed[]`) and any
+  downstream consumer that filters on these IDs.
+- SKILL.md Phase 6 §Coverage now lists each check with its canonical
+  ID in a 9-row table: `check_1_identity`, `check_2_role`,
+  `check_3_platforms`, `check_4_contact`, `check_5_career`,
+  `check_6_location`, `check_7_photo`, `check_8_contradictions`,
+  `check_9_internal`.
+- No schema change to `stages/06-gaps.json` — Phase 6 already emits
+  these IDs in `coverage.failed[]`. This commit just makes the
+  convention explicit and load-bearing.
+
+---
+
 ## v0.4.2 — 2026-05-01
 
 R18 follow-up — escalation rule grounded in existing schema.
