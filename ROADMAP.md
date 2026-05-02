@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-05-01 (R20 added) · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-05-02 (R21–R23 added) · Owner: @sapihav
 
 ---
 
@@ -225,6 +225,65 @@ looks reasonable.
 
 **Effort:** S per actor added; permanent rule.
 
+### R21. Discovery-mode actor seed [NEW 2026-05-02]
+**Problem.** `references/tools.md` ships 21 actors, all of the
+"fetch X for a known handle Y" shape. When the subject's handle
+isn't known yet (low-footprint target, or the target is found by
+*who tags them* rather than by their own profile), the agent has
+no documented actor for the *finding* step. R2.1's on-demand-growth
+policy means the first such run pays the discovery tax —
+`apify store-search` mid-Phase-3 with no shortlist.
+
+**Scope:** seed 2–3 discovery-mode actors with verified input shapes
+per the R2.1 methodology (`apify actors info <id> --input --json`):
+
+- `clockworks/tiktok-user-search-scraper` — find TikTok users by
+  keywords/name when handle is unknown.
+- `apify/instagram-tagged-scraper` — find people who tag the
+  subject (social-graph seed angle).
+- `vdrmota/contact-info-scraper` — extract emails/phones from any
+  URL (universal contact harvesting).
+
+Each documented in the same shape as existing entries: actor ID,
+input schema, output shape, typical cost, when-to-use.
+
+**Why this isn't a regression of R2.1.** R2.1 killed the "import 55
+actors as breadth target" framing; it did not forbid seeding the
+catalog with obvious gaps. Discovery-mode is a structurally
+different actor *class* than the current fetch-known-X catalog — it
+unblocks a research mode the agent currently can't initiate.
+
+**Touches:** `references/tools.md` only.
+
+**Effort:** S. ~30 lines added; one validation run per actor.
+
+### R22. Low-footprint research playbook [NEW 2026-05-02]
+**Problem.** When Phase 1 returns thin results for a subject who
+*should* have a digital footprint (deleted profiles, OpSec-aware
+target, minimal exposure), the skill has no documented tactics. The
+agent improvises — sometimes well, sometimes giving up too early.
+The parity reference ships an "OpSec-aware targets" section naming
+specific recovery moves: Wayback Machine, Google Cache, Yandex
+Cache (CIS-strong), transliteration variants, reverse-image search,
+conference archives.
+
+**Scope:** new lazy-loaded `references/opsec-targets.md` (~30
+lines), invoked when:
+
+- Phase 1 returns an unusually thin merged-row count for a name
+  that has external context, OR
+- Phase 3 fails on the obvious primary handle for ≥ 2 platforms.
+
+SKILL.md Phase 1 footer adds one trigger sentence:
+*"If results look unusually thin for someone who should have a
+footprint, read `references/opsec-targets.md`."* The reference
+file holds the actual tactics; SKILL.md stays tight.
+
+**Touches:** new `references/opsec-targets.md`, one sentence in
+SKILL.md Phase 1.
+
+**Effort:** S. ~30 lines reference + 1 line SKILL.md.
+
 ---
 
 ## P3 — Defer / reconsider
@@ -246,6 +305,31 @@ relations. Not a priority until a consumer exists.
 ### R10. Output formats beyond markdown — YAGNI
 HTML / PDF / JSON-export of the dossier. YAGNI unless an actual
 consumer asks.
+
+### R23. Operator-facing dossier-quality calibration narrative [NEW 2026-05-02]
+**Blocked on R20.** The Phase 7 render shape changes with the slot
+model; calibration bands have to be keyed off the v2 metrics, not
+v1's `depth_score`.
+
+**Problem.** Phase 7 currently surfaces the depth_score and met-count
+bare. There is no operator-facing "what does this number actually
+mean" — is this dossier shippable, or should it be re-run? The
+parity reference ships a 4-band calibration ("9-10 = professional
+PI report; 7-8 = solid due diligence; 5-6 = quick BG check; <5 =
+insufficient") that sets expectations.
+
+**Scope (post-R20):** add a calibration-band paragraph to Phase 7
+render. Bands keyed off post-R20 metrics from `06-gaps.json` v2 —
+likely `summary.met` count + per-grade distribution across met
+slots. 3–4 operator-facing labels.
+
+**Touches:** `assets/dossier-template.md` audit footer, Phase 7
+prose in SKILL.md.
+
+**Effort:** S. ~10 template lines + 1 paragraph in SKILL.md.
+
+**Why P3:** purely operator UX — doesn't unblock anything else.
+Touch only after R20 ships and the v2 render shape stabilises.
 
 ---
 
