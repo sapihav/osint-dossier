@@ -1,0 +1,13 @@
+{
+  "schema_version": "2",
+  "phase": 4,
+  "subject_name": "Sam Chen",
+  "slug": "sam-chen",
+  "best_handle": "schen",
+  "facts": [
+    {"fact_id": "fact_1", "slot_id": "identity_confirmed", "claim": "Sam Chen, Director of Product at Beta Co (LinkedIn verified)", "grade": "B", "sources": ["https://linkedin.com/in/schen"], "date": "2026-04-01", "notes": ""}
+  ],
+  "contradictions": [],
+  "name_collision": {"checked": true, "resolved": true, "evidence": []},
+  "ts": "2026-05-02T13:00:00Z"
+}

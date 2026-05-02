@@ -1,0 +1,17 @@
+{
+  "schema_version": "2",
+  "phase": 4,
+  "subject_name": "Pat Lee",
+  "slug": "pat-lee",
+  "best_handle": "patlee",
+  "facts": [
+    {"fact_id": "fact_1", "slot_id": "identity_confirmed", "claim": "Pat Lee at Gamma Inc per LinkedIn (verified)", "grade": "A", "sources": ["https://linkedin.com/in/patlee", "https://gamma.example/team"], "date": "2026-04-01", "notes": ""},
+    {"fact_id": "fact_2", "slot_id": "current_role", "claim": "CTO at Gamma Inc per LinkedIn", "grade": "B", "sources": ["https://linkedin.com/in/patlee"], "date": "2026-04-01", "notes": ""},
+    {"fact_id": "fact_3", "slot_id": "current_role", "claim": "Co-founder of Gamma Inc per company About page", "grade": "B", "sources": ["https://gamma.example/about"], "date": "2026-03-20", "notes": ""}
+  ],
+  "contradictions": [
+    {"claim_a": "CTO at Gamma Inc", "claim_b": "Co-founder of Gamma Inc", "sources": ["https://linkedin.com/in/patlee", "https://gamma.example/about"]}
+  ],
+  "name_collision": {"checked": true, "resolved": true, "evidence": []},
+  "ts": "2026-05-02T14:00:00Z"
+}

@@ -1,0 +1,26 @@
+{
+  "schema_version": "2",
+  "cycle": 1,
+  "slots": [
+    {"slot_id": "identity_confirmed", "met": true, "kind": "met", "where_and_how": "", "tiers_tried": [], "evidence": ["fact_1"]},
+    {"slot_id": "current_role", "met": true, "kind": "met", "where_and_how": "", "tiers_tried": [], "evidence": ["fact_2", "fact_3"]},
+    {"slot_id": "public_platforms", "met": false, "kind": "never_found", "where_and_how": "Search Pat Lee across LinkedIn, Twitter/X, Instagram, GitHub, personal site — surface ≥2 distinct profiles.", "tiers_tried": [], "evidence": []},
+    {"slot_id": "contact_method", "met": false, "kind": "never_found", "where_and_how": "Look at Pat Lee's personal site, GitHub profile bio, conference speaker page, or company contact directory.", "tiers_tried": [], "evidence": []},
+    {"slot_id": "career_history", "met": false, "kind": "never_found", "where_and_how": "Walk LinkedIn (/in/patlee) experience section; cross-check at least one prior position via press release, GitHub org membership, or conference bio.", "tiers_tried": [], "evidence": []},
+    {"slot_id": "current_location", "met": false, "kind": "never_found", "where_and_how": "Check LinkedIn location field; corroborate via Twitter/X bio, conference attendance, or geotagged content.", "tiers_tried": [], "evidence": []},
+    {"slot_id": "photograph", "met": false, "kind": "never_found", "where_and_how": "Pull profile picture from LinkedIn (/in/patlee), conference speaker page, company team page, or news photo.", "tiers_tried": [], "evidence": []}
+  ],
+  "escalation_eligible": ["public_platforms", "contact_method", "career_history", "current_location", "photograph"],
+  "meta_checks": {
+    "contradictions_resolved": false,
+    "phase_2_attested": "skipped"
+  },
+  "summary": {
+    "met": 2,
+    "unmet_with_ladder": 5,
+    "unmet_ladder_exhausted": 0,
+    "applies_when_skipped": 0
+  },
+  "stop_decision": "continue",
+  "timestamp": "2026-05-02T14:05:00Z"
+}

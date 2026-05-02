@@ -1,0 +1,20 @@
+{
+  "schema_version": "2",
+  "phase": 4,
+  "subject_name": "Maria Garcia",
+  "slug": "maria-garcia",
+  "best_handle": "mgarcia",
+  "facts": [
+    {"fact_id": "fact_1", "slot_id": "identity_confirmed", "claim": "Maria Garcia, VP Engineering at Acme Corp (verified LinkedIn + company About page)", "grade": "A", "sources": ["https://linkedin.com/in/mgarcia", "https://acme.example/about"], "date": "2026-03-15", "notes": ""},
+    {"fact_id": "fact_2", "slot_id": "current_role", "claim": "VP Engineering at Acme Corp per LinkedIn experience section", "grade": "A", "sources": ["https://linkedin.com/in/mgarcia"], "date": "2026-03-15", "notes": ""},
+    {"fact_id": "fact_3", "slot_id": "current_role", "claim": "Promotion to VP Engineering announced in 2025-09 press release", "grade": "A", "sources": ["https://acme.example/press/2025-09-vp-engineering"], "date": "2025-09-12", "notes": ""},
+    {"fact_id": "fact_4", "slot_id": "public_platforms", "claim": "LinkedIn profile /in/mgarcia is active", "grade": "B", "sources": ["https://linkedin.com/in/mgarcia"], "date": "2026-03-15", "notes": ""},
+    {"fact_id": "fact_5", "slot_id": "public_platforms", "claim": "Twitter/X handle @mgarcia_dev is the same person (cross-linked from LinkedIn)", "grade": "C", "sources": ["https://twitter.com/mgarcia_dev"], "date": "2026-04-10", "notes": ""},
+    {"fact_id": "fact_6", "slot_id": "contact_method", "claim": "Public email maria@acme.example listed on personal site", "grade": "C", "sources": ["https://maria-garcia.example/contact"], "date": "2026-04-15", "notes": ""},
+    {"fact_id": "fact_7", "slot_id": "career_history", "claim": "Joined Acme Corp 2024-01 as Director, promoted to VP Eng 2025-09", "grade": "A", "sources": ["https://linkedin.com/in/mgarcia"], "date": "2026-03-15", "notes": ""},
+    {"fact_id": "fact_8", "slot_id": "current_location", "claim": "San Francisco Bay Area per LinkedIn location field", "grade": "C", "sources": ["https://linkedin.com/in/mgarcia"], "date": "2026-03-15", "notes": ""}
+  ],
+  "contradictions": [],
+  "name_collision": {"checked": true, "resolved": true, "evidence": ["only one Maria Garcia at Acme; no namesake collision"]},
+  "ts": "2026-05-02T12:00:00Z"
+}

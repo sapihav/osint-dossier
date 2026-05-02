@@ -1,5 +1,103 @@
 # Changelog
 
+## v0.5.0 — 2026-05-02
+
+R20 closed — Phase 6 redesign to a unified slot model. Clean break
+from v1 per the R20 / spec §1.4 "ship v1 or v2, no field-by-field
+migration" mandate.
+
+### New artifacts
+
+- `references/slots.md` — authoritative slot catalog. Markdown
+  wrapper around one YAML codeblock; one row per check. Adding,
+  removing, or tuning a check is a catalog edit, not a SKILL.md
+  edit (per spec invariant O1 — *catalog as authority*). Variable
+  surface for `where_and_how_template` (`${name}`, `${handle}`,
+  `${slug}`) is frozen at the catalog header for the v2 schema
+  lifetime.
+- `tests/fixtures/phase-6/{worked_failure_trace, s1_internal_only,
+  canonical_run, render_distinction, meta_v1_v2_mapping/{contradictions,phase2}}/`
+  — 5 hand-replay fixtures, one per acceptance-criterion seed in
+  spec §6. Each carries the input `04-cross-ref.json`, expected
+  `06-gaps.json`, walk-through notes, and (where relevant) a
+  prior-cycle artifact and an expected Phase-7 render snippet.
+
+### Schema changes
+
+- `stages/06-gaps.json` v1 → v2. New top-level shape:
+  `{schema_version, cycle, slots[], escalation_eligible[],
+  meta_checks{}, summary{}, stop_decision, timestamp}`. Replaces
+  v1's `{coverage{}, depth_score, gaps[], …}`. `schema_version`
+  is the FIRST key — consumers (R18, Phase 7) MUST verify it
+  before reading any other field, per spec invariant O2.
+- `stages/04-cross-ref.json` v1 → v2. Each fact now carries
+  `fact_id` (referenced by `06-gaps.json[].slots[].evidence[]`),
+  `slot_id` (catalog mapping; `null` if no slot applies), and
+  `date` (best-available source-attestation date for freshness
+  gating). Phase 3 prose updated to assign `slot_id` and `date`
+  at extraction; Phase 4 carries them through.
+
+### Procedure changes
+
+- Phase 6 prose in `SKILL.md` rewritten as a 5-step deterministic
+  function: load+filter catalog → attach Phase 4 facts →
+  compute eligibility/met → derive kind → build artifact.
+  Eliminates the agent-interpretation surface that produced the
+  R18 churn of v0.4.1 → v0.4.2 → v0.4.3.
+- R18 escalation prose rewritten to read `escalation_eligible[]`
+  directly (no more "plausibly closable" soft predicate) and to
+  pick each slot's first un-tried tier from the catalog's
+  `tier_ladder`. R18 appends to `tiers_tried[]` in the in-cycle
+  `06-gaps.json` between cycles — the artifact is the single
+  source of truth for slot status across cycles.
+- Phase 7 prose + `assets/dossier-template.md` updated for the v2
+  output: per-grade distribution replaces `depth_score`;
+  `meta_checks{}` block in the audit footer; gap render
+  affordances split into "not yet attempted", "ladder exhausted",
+  and standard.
+
+### Eliminations
+
+- `coverage[]` (with `passed` / `failed` / `check_*` IDs) — replaced
+  by `slots[]` rows with mechanical `met` and the
+  `escalation_eligible[]` derivation.
+- `depth_score` (and the 7-dimension weighted-sum table) — plateau
+  detection moves to "no new slot met since prior cycle"
+  (`summary.met` Δ). Phase 7 surfaces depth via met-count +
+  per-grade distribution. Accepted residual: a slot improving
+  from D-grades to C-grades without crossing `min_grade` triggers
+  plateau by design (cycle waste, not a regression).
+- v1's `check_8_contradictions` and `check_9_internal` are NOT
+  slots in v2 — they don't fit the `min_grade`/`min_sources`
+  shape because they ask "was the *process* followed?" not "was
+  the *data* found?". They live as `meta_checks.contradictions_resolved`
+  (bool) and `meta_checks.phase_2_attested` (enum
+  `promoted`/`skipped`/`incomplete`). Meta-checks are NOT in
+  `escalation_eligible[]` — escalation cannot fix them.
+
+### Spec corrections recorded at lock
+
+- §4.5 spec draft used `phase_5_attested` but the body text tied
+  it to "internal" + "four-gate protocol" + `stages/05-internal.json`.
+  The four-gate protocol is Phase 2 (internal intelligence), not
+  Phase 5 (psychoprofile). Field renamed `phase_2_attested` and
+  pointed at `stages/02-internal.gates.log`.
+- §5.0 added at lock to declare the Phase 4 fact-shape
+  precondition (fact_id / slot_id / date). Spec draft framed
+  these as "pre-existing convention, out of scope" but they did
+  not exist in v0.4.3. Phase 3 / Phase 4 prose edits are now
+  in-scope for the v2 PR — single PR per §1.4 still holds.
+
+### Acceptance
+
+13 acceptance criteria from spec §6 + summary-invariant +
+escalation-derivation checks pass against all 6 expected outputs
+(5 fixtures, one with a cycle-2 + prior-cycle pair). Mechanical
+replay log in PR body. The first 3 production dossier runs after
+merge are hand-audited per spec §1.5 / R20 rollback plan.
+
+---
+
 ## v0.4.3 — 2026-05-01
 
 Phase 6 — pin canonical IDs for the 9 coverage checks.

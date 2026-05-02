@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-05-02 (R21–R23 added) · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-05-02 (R20 closed) · Owner: @sapihav
 
 ---
 
@@ -57,8 +57,42 @@ directory at skill launch (`./osint-<slug>/`), not `/tmp/osint-<slug>/`.
 
 ## P1 — Parity gaps that actually move the needle
 
-### R20. Phase 6 redesign — unified fact-slot model [NEW 2026-05-01]
-**Problem.** Phase 6 carries two parallel data structures describing
+### R20. Phase 6 redesign — unified fact-slot model ✓ done 2026-05-02
+**Shipped (v0.5.0):**
+- `references/slots.md` — 7-slot catalog (one row per data check
+  from v1's `coverage[]`, minus the two meta-checks). Per-slot
+  `min_grade`, `min_sources`, `tier_ladder`, optional
+  `max_age_days`, `internal_counts`, `applies_when`,
+  `where_and_how_template`. Variable surface frozen at the
+  catalog header.
+- `stages/06-gaps.json` v2 schema: `slots[]` rows with
+  `met`/`kind`/`tiers_tried`/`evidence`, top-level
+  `escalation_eligible[]`, `meta_checks{}` for process attestation,
+  `summary{}` with two structural invariants. `schema_version` is
+  the first key — consumers MUST verify per spec O2.
+- `stages/04-cross-ref.json` v2: facts now carry `fact_id`,
+  `slot_id`, `date`. Phase 3 / Phase 4 prose updated to assign at
+  extraction.
+- Phase 6 prose in `SKILL.md` rewritten as a 5-step deterministic
+  function. R18 and Phase 7 prose updated to read v2 + perform the
+  schema-version handshake.
+- `assets/dossier-template.md` — depth_score eliminated in favor
+  of met-count + per-grade distribution; meta_checks audit footer;
+  gap render affordances ("not yet attempted" / "ladder exhausted"
+  / standard).
+- 5 fixtures under `tests/fixtures/phase-6/`. 13 acceptance
+  criteria from spec §6 verified via mechanical replay; results
+  in PR body.
+
+**Spec at `references/phase-6-spec.md`** — locked in full
+2026-05-02. Two corrections recorded at lock: `phase_5_attested`
+renamed to `phase_2_attested` (the attested artifact is
+`stages/02-internal.gates.log`, not `stages/05-*`), and §5.0 added
+to declare the Phase 4 fact-shape precondition (fact_id / slot_id
+/ date) that the §5.1 procedure rests on.
+
+**Original problem statement** — Phase 6 carries two parallel data
+structures describing
 the same thing: `coverage[]` (9 hardcoded binary checks) and `gaps[]`
 (open-ended free-text). They are supposed to be related, but the
 relationship is not enforced anywhere — that is why R18 needed three
