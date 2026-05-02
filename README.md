@@ -91,7 +91,7 @@ The skill runs 7 phases end-to-end:
 | 3 | Platform extraction (LinkedIn, Instagram, Facebook, TikTok, YouTube, Telegram, web) |
 | 4 | Cross-reference + fact grading (A/B/C/D + I for internal) |
 | 5 | Psychoprofile (optional) |
-| 6 | Coverage + depth scoring + gap analysis |
+| 6 | Slot-coverage + gap analysis (catalog: `references/slots.md`) |
 | 7 | Dossier rendering to `./osint-<slug>/dossier.md` (CWD-relative) |
 
 Budget default: ≤ $0.50 per subject without asking; above that the skill

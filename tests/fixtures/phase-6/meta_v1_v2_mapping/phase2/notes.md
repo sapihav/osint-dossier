@@ -21,6 +21,19 @@ at lock 2026-05-02 — see spec §4.5 / §6 criterion 12.
   `phase_2_attested`.
 - `expected-06-gaps.json` — expected output.
 
+## Note: the gates-log format is invented for this fixture
+
+Real Phase 2 writes to `stages/02-internal.gates.log` per R19, but
+the log's actual line format is not formalized anywhere — R19 only
+specified the path and that it carries gate-state, not the syntax.
+The two-line `key=value` format here is illustrative; the real
+parser used by Phase 6 v2 must accept whatever Phase 2 actually
+emits. If a future PR formalizes the log syntax (and it should —
+this is an R21 candidate per the parity audit), this fixture
+should be updated to match, and Phase 6's "read the gates-log"
+prose in `SKILL.md` should be tightened from "find the terminal
+gate-state" to a specific parse rule.
+
 ## Key assertions
 
 - Phase 6 reads `02-internal.gates.log` and finds a terminal

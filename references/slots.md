@@ -92,6 +92,33 @@ slots:
     where_and_how_template: "Pull profile picture from LinkedIn (/in/${handle}), conference speaker page, company team page, or news photo."
 ```
 
+## Untested escape-hatch fields (review burden for first adopter)
+
+Two fields declared in spec §3.1 are present in the schema but
+exercised by **zero** v2 catalog rows:
+
+- `applies_when` — defaults to `always`. Drop a slot from
+  `06-gaps.json` based on a run-context boolean (only
+  `phase_5_run` is defined today). The `summary.applies_when_skipped`
+  count exists for this. v2 has no Phase-5-only slot.
+- `internal_counts` — defaults to `false`. The structural defence
+  for spec invariant S1.1 (non-substitution): a slot with this
+  set to `true` would count Grade-I facts toward `min_sources`.
+  The default of `false` is what makes Grade-I-only evidence
+  unable to satisfy any v2 slot.
+
+**The first PR that exercises either field MUST also extend
+`tests/fixtures/phase-6/` with a fixture that asserts the new
+behaviour.** Reasoning: untested surface tends to drift; both
+fields are load-bearing IF used (the `internal_counts` default
+of `false` IS what enforces non-substitution mechanically), so
+the first opt-in needs explicit fixture coverage.
+
+For `internal_counts: true` specifically, also re-verify the
+S1.2 non-leak invariant by hand — Grade-I content getting into
+prose fields is the failure mode that motivated the four-gate
+protocol in the first place.
+
 ## v1 → v2 mapping
 
 | v1 `coverage[]` ID | v2 destination | Notes |

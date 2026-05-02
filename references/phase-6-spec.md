@@ -42,6 +42,19 @@ and the v2 PR pulls Phase 3/4 prose edits into scope alongside the
 Phase 6 rewrite. Single PR per §1.4 still holds — the precondition
 is part of "v2," not a separate milestone.
 
+**`phase_5_attested` → `phase_2_attested` renamed at lock time.**
+The §4.5 draft used `phase_5_attested` but the body text tied it
+to "internal" + "four-gate protocol" + `stages/05-internal.json`.
+The four-gate protocol is **Phase 2** (internal intelligence), not
+Phase 5 (psychoprofile); the actual artifact path is
+`stages/02-internal.gates.log`. v1's `check_9_internal` mapped to
+the Phase 2 attestation, not Phase 5. Field renamed
+`phase_2_attested` and the artifact path corrected. If the original
+naming was deliberate (e.g., a planned future `phase_5_attested`
+for Phase 5 audit), revert this rename in §4.5, §6 criterion 12,
+the catalog mapping in `references/slots.md`, the SKILL.md Phase 6
+prose, and the two `meta_v1_v2_mapping/phase2/*` fixture files.
+
 **Why §3–§6 are not formal FSM tables.** §0/§1 framed Phase 6 as
 combinatorial-state — true for the *invariant question* (which is why
 §2 stays formal). For the *implementation surface* (9 catalog rows, a

@@ -25,7 +25,24 @@ block:
   `04-cross-ref.json` as cycle 1 ⇒ same met-status as cycle 1
   (escalation produced no new facts) ⇒ `summary.met` unchanged
   ⇒ plateau ⇒ `stop_decision: render-final`.
-- `expected-render.md` — expected Phase 7 Gaps block.
+- `expected-render.md` — expected Phase 7 snippets for the three
+  new/changed template surfaces: Gaps (three affordances),
+  Coverage (per-grade distribution + meta_checks attestation),
+  Audit log (meta-check footer surface). Other Phase 7 sections
+  (Summary, Facts, Psychoprofile) are stable from v1 and not
+  asserted here.
+
+## Coverage block derivation
+
+- `met_count` = 1 (only `identity_confirmed`).
+- `total_slots` = 7 (catalog size; no `applies_when` filtering).
+- `grade_distribution` = `{B: 1}` — `identity_confirmed`'s only
+  evidence is `fact_1` at grade B. Phase 7 counts the strongest
+  evidence grade per met slot.
+- `contradictions_resolved` = true (input `contradictions[]` empty).
+- `phase_2_attested` = "skipped" (no Phase 2 was attempted in
+  this fixture's run; no warning surface — `skipped` is a valid
+  attestation, only `incomplete` warns).
 
 ## Key assertions
 
