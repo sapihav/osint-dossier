@@ -1,0 +1,75 @@
+{
+  "schema_version": "2",
+  "cycle": 1,
+  "slots": [
+    {
+      "slot_id": "identity_confirmed",
+      "met": true,
+      "kind": "met",
+      "where_and_how": "",
+      "tiers_tried": [],
+      "evidence": ["fact_1"]
+    },
+    {
+      "slot_id": "current_role",
+      "met": true,
+      "kind": "met",
+      "where_and_how": "",
+      "tiers_tried": [],
+      "evidence": ["fact_2", "fact_3"]
+    },
+    {
+      "slot_id": "public_platforms",
+      "met": true,
+      "kind": "met",
+      "where_and_how": "",
+      "tiers_tried": [],
+      "evidence": ["fact_4", "fact_5"]
+    },
+    {
+      "slot_id": "contact_method",
+      "met": true,
+      "kind": "met",
+      "where_and_how": "",
+      "tiers_tried": [],
+      "evidence": ["fact_6"]
+    },
+    {
+      "slot_id": "career_history",
+      "met": false,
+      "kind": "undersourced",
+      "where_and_how": "Walk LinkedIn (/in/mgarcia) experience section; cross-check at least one prior position via press release, GitHub org membership, or conference bio.",
+      "tiers_tried": [],
+      "evidence": ["fact_7"]
+    },
+    {
+      "slot_id": "current_location",
+      "met": true,
+      "kind": "met",
+      "where_and_how": "",
+      "tiers_tried": [],
+      "evidence": ["fact_8"]
+    },
+    {
+      "slot_id": "photograph",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Pull profile picture from LinkedIn (/in/mgarcia), conference speaker page, company team page, or news photo.",
+      "tiers_tried": [],
+      "evidence": []
+    }
+  ],
+  "escalation_eligible": ["career_history", "photograph"],
+  "meta_checks": {
+    "contradictions_resolved": true,
+    "phase_2_attested": "skipped"
+  },
+  "summary": {
+    "met": 5,
+    "unmet_with_ladder": 2,
+    "unmet_ladder_exhausted": 0,
+    "applies_when_skipped": 0
+  },
+  "stop_decision": "continue",
+  "timestamp": "2026-05-02T12:05:00Z"
+}

@@ -42,12 +42,18 @@ Not run.
 
 ## Gaps
 {{#gaps}}
-- {{gap}} → look at: {{where_and_how}}
+- {{description}} — {{render_affordance}}
+  - {{#if not_yet_attempted}}Not yet attempted. Try: {{where_and_how}}{{/if}}
+  - {{#if ladder_exhausted}}Tried {{tiers_tried_summary}} — no public source produced a match. Spending more here is probably wasted; treat as a residual gap.{{/if}}
+  - {{#if standard_gap}}Try: {{where_and_how}} (already attempted: {{tiers_tried_summary}}).{{/if}}
 {{/gaps}}
 
-## Coverage & Depth
-- Coverage: {{coverage_passed}}/9 checks pass{{#if coverage_failures}} ({{coverage_failures_summary}}){{/if}}
-- Depth Score: {{depth_score}}
+## Coverage
+- Slots met: {{met_count}}/{{total_slots}}{{#if applies_when_skipped}} ({{applies_when_skipped}} not applicable this run){{/if}}
+- Grade distribution across met slots: {{grade_distribution}}
+- Process attestation:
+  - Contradictions resolved: {{contradictions_resolved}}
+  - Internal-intelligence phase: {{phase_2_attested}}{{#if phase_2_incomplete}} ⚠ Phase 2 started but did not reach a terminal gate{{/if}}
 
 ## Audit log
 - Tools used: {{tool_call_summary}}

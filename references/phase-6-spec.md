@@ -1,8 +1,9 @@
 ---
 title: "Phase 6 — Completeness & Gap Analysis Spec (R20)"
 type: spec
-status: in-progress
+status: locked
 created: 2026-05-01
+locked: 2026-05-02
 parent: ROADMAP.md#R20
 ---
 
@@ -21,14 +22,38 @@ parent: ROADMAP.md#R20
 - [x] §0 Triage — trigger properties named (combinatorial state; "we missed a case")
 - [x] §1 Framing — locked 2026-05-01
 - [x] §2 Invariants — locked 2026-05-01 (revised after self-review)
-- [ ] §3 Slot catalog schema — drafted 2026-05-02
-- [ ] §4 `06-gaps.json` v2 schema — drafted 2026-05-02
-- [ ] §5 Phase 6 procedure — drafted 2026-05-02
-- [ ] §6 Acceptance criteria — drafted 2026-05-02
+- [x] §3 Slot catalog schema — locked 2026-05-02
+- [x] §4 `06-gaps.json` v2 schema — locked 2026-05-02
+- [x] §5 Phase 6 procedure — locked 2026-05-02 (with §5.0 precondition added)
+- [x] §6 Acceptance criteria — locked 2026-05-02
 
-§3–§6 await operator review/lock. Locks are revisable: if a later
-section shows §2 missed an invariant, unlock §2 and revise — don't
-work around it.
+Locks are revisable: if a later section shows §2 missed an
+invariant, unlock §2 and revise — don't work around it.
+
+**§5.0 added at lock time.** Implementation surfaced a hidden
+dependency: §5.1 step 2 assumes Phase 4 facts already carry
+`slot_id`, but the v0.4.3 fact shape is `{claim, grade, sources,
+notes}` — no `slot_id`, no `fact_id` (referenced by `evidence[]`),
+no `date` (needed by `max_age_days`). The "out of scope" framing
+was wrong; without these fields v2 either silently fails or
+re-introduces a tagged-fact heuristic the §2 three-model comparison
+already rejected. Fix: §5.0 declares the fact-shape precondition,
+and the v2 PR pulls Phase 3/4 prose edits into scope alongside the
+Phase 6 rewrite. Single PR per §1.4 still holds — the precondition
+is part of "v2," not a separate milestone.
+
+**`phase_5_attested` → `phase_2_attested` renamed at lock time.**
+The §4.5 draft used `phase_5_attested` but the body text tied it
+to "internal" + "four-gate protocol" + `stages/05-internal.json`.
+The four-gate protocol is **Phase 2** (internal intelligence), not
+Phase 5 (psychoprofile); the actual artifact path is
+`stages/02-internal.gates.log`. v1's `check_9_internal` mapped to
+the Phase 2 attestation, not Phase 5. Field renamed
+`phase_2_attested` and the artifact path corrected. If the original
+naming was deliberate (e.g., a planned future `phase_5_attested`
+for Phase 5 audit), revert this rename in §4.5, §6 criterion 12,
+the catalog mapping in `references/slots.md`, the SKILL.md Phase 6
+prose, and the two `meta_v1_v2_mapping/phase2/*` fixture files.
 
 **Why §3–§6 are not formal FSM tables.** §0/§1 framed Phase 6 as
 combinatorial-state — true for the *invariant question* (which is why
@@ -452,7 +477,7 @@ Single artifact emitted per Phase 6 cycle, consumed by R18 and Phase 7.
   "escalation_eligible": ["slot_id_a", "slot_id_b"],
   "meta_checks": {
     "contradictions_resolved": true,
-    "phase_5_attested": "skipped"
+    "phase_2_attested": "skipped"
   },
   "summary": {
     "met": 5,
@@ -529,13 +554,17 @@ attestation footer.
 | Field | Type | Source | Render meaning |
 |---|---|---|---|
 | `contradictions_resolved` | bool | True iff `04-cross-ref.json` reports zero unresolved contradictions. (Phase 4 owns the count; Phase 6 reads it. Out of scope: how Phase 4 detects contradictions.) | False ⇒ dossier renders "⚠ N unresolved contradictions in source set" footer. |
-| `phase_5_attested` | enum `promoted` / `skipped` / `incomplete` | Determined from Phase 5's audit signal (presence of `stages/05-internal.json` AND its terminal status). `skipped` is a valid attestation per the four-gate protocol — the operator made a decision. `incomplete` ⇒ Phase 5 started but didn't reach a terminal state. | `incomplete` is the only value that triggers a Phase 7 warning. `promoted` and `skipped` both render as "internal-intelligence phase: <attestation>" in the audit footer. |
+| `phase_2_attested` | enum `promoted` / `skipped` / `incomplete` | Determined from Phase 2's audit signal (presence of `stages/02-internal.gates.log` AND its terminal gate-state). `skipped` is a valid attestation per the four-gate protocol — the operator made a decision. `incomplete` ⇒ Phase 2 started but didn't reach a terminal gate. | `incomplete` is the only value that triggers a Phase 7 warning. `promoted` and `skipped` both render as "internal-intelligence phase: <attestation>" in the audit footer. |
 
 **Maps to v1.** `contradictions_resolved` replaces `check_8_contradictions`;
-`phase_5_attested` replaces `check_9_internal`. v1 surfaced both as
+`phase_2_attested` replaces `check_9_internal`. v1 surfaced both as
 binary `coverage[]` entries — that mis-modelled them as data-found
 checks. v2 separates concerns: `slots[]` is data coverage,
-`meta_checks{}` is process attestation.
+`meta_checks{}` is process attestation. *(Field name corrected
+2026-05-02 at lock time: spec draft used `phase_5_attested`, but
+v1's `check_9_internal` semantically attests Phase 2 — internal
+intelligence, four-gate protocol — not Phase 5 psychoprofile. The
+attested artifact is `stages/02-internal.gates.log`.)*
 
 ### 4.6 No `depth_score`
 
@@ -547,7 +576,28 @@ Q1 resolved in favor of elimination. See §5.4.
 
 Phase 6 is a deterministic function:
 `(04-cross-ref.json, references/slots.md, prior-cycle 06-gaps.json if any) → new 06-gaps.json`.
-Five steps.
+Five steps, gated on a fact-shape precondition (§5.0).
+
+### 5.0 Fact-shape precondition  *(added at lock 2026-05-02)*
+
+For Phase 6 v2 to evaluate facts deterministically, every row in
+`stages/04-cross-ref.json[].facts` MUST carry three fields beyond
+the v0.4.3 shape:
+
+| Field | Type | Source | Purpose |
+|---|---|---|---|
+| `fact_id` | string (snake_case, stable within a run, e.g., `fact_42`) | Assigned by Phase 4 when the fact is appended | Referenced by `evidence[]` in `06-gaps.json` (§4.2). |
+| `slot_id` | string matching a row in `references/slots.md`, OR `null` if the fact does not map to any catalog slot | Assigned by Phase 3 at extraction; passed through Phase 4 unchanged | Phase 6 step 2 attaches facts to slots by this field. `null` ⇒ fact contributes to none. |
+| `date` | ISO `YYYY-MM-DD` (best-available date the source attested the claim — profile last-update for LinkedIn, publish date for press releases; observation date if no source date is available), OR `null` | Assigned by Phase 3 at extraction; passed through Phase 4 unchanged | Phase 6 step 3 freshness gate. `null` ⇒ fact fails `passes_freshness` for any slot with `max_age_days` set; passes vacuously when `max_age_days` is unset. |
+
+The Phase 3 / Phase 4 SKILL.md prose edits to add these three
+fields are part of the v2 PR. Without them v2 cannot evaluate; with
+them, v2 evaluation stays mechanical (S3) and deterministic (L2).
+
+`fact_id` and `date`-as-`null` semantics are intentional: a fact
+without a known source date is still useful for `low_grade` /
+`undersourced` classification — it just can't satisfy a slot that
+gates on freshness. This is the conservative default.
 
 ### 5.1 Steps
 
@@ -742,8 +792,8 @@ Per §1.4 ("one PR"), the PR is not mergeable without them.
     `check_8_contradictions == false` (i.e., Phase 4 reports ≥1
     unresolved contradiction) emits `meta_checks.contradictions_resolved == false`
     in v2. A fixture that replays v1's `check_9_internal == "skipped"`
-    emits `meta_checks.phase_5_attested == "skipped"`.
-    *Test:* paired fixtures `meta_v1_v2_mapping/{contradictions,phase5}.json`.
+    emits `meta_checks.phase_2_attested == "skipped"`.
+    *Test:* paired fixtures `meta_v1_v2_mapping/{contradictions,phase2}.json`.
 
 ### Closure
 

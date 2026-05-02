@@ -1,0 +1,75 @@
+{
+  "schema_version": "2",
+  "cycle": 1,
+  "slots": [
+    {
+      "slot_id": "identity_confirmed",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Cross-check Jane Doe against a second public source (official bio, employer site, verified profile) — name-collision risk if only one match.",
+      "tiers_tried": [],
+      "evidence": []
+    },
+    {
+      "slot_id": "current_role",
+      "met": false,
+      "kind": "low_grade",
+      "where_and_how": "Look on LinkedIn (/in/jdoe); cross-check via company press release, filings, or official site.",
+      "tiers_tried": [],
+      "evidence": ["fact_1", "fact_2"]
+    },
+    {
+      "slot_id": "public_platforms",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Search Jane Doe across LinkedIn, Twitter/X, Instagram, GitHub, personal site — surface ≥2 distinct profiles.",
+      "tiers_tried": [],
+      "evidence": []
+    },
+    {
+      "slot_id": "contact_method",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Look at Jane Doe's personal site, GitHub profile bio, conference speaker page, or company contact directory.",
+      "tiers_tried": [],
+      "evidence": []
+    },
+    {
+      "slot_id": "career_history",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Walk LinkedIn (/in/jdoe) experience section; cross-check at least one prior position via press release, GitHub org membership, or conference bio.",
+      "tiers_tried": [],
+      "evidence": []
+    },
+    {
+      "slot_id": "current_location",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Check LinkedIn location field; corroborate via Twitter/X bio, conference attendance, or geotagged content.",
+      "tiers_tried": [],
+      "evidence": []
+    },
+    {
+      "slot_id": "photograph",
+      "met": false,
+      "kind": "never_found",
+      "where_and_how": "Pull profile picture from LinkedIn (/in/jdoe), conference speaker page, company team page, or news photo.",
+      "tiers_tried": [],
+      "evidence": []
+    }
+  ],
+  "escalation_eligible": ["identity_confirmed", "current_role", "public_platforms", "contact_method", "career_history", "current_location", "photograph"],
+  "meta_checks": {
+    "contradictions_resolved": true,
+    "phase_2_attested": "promoted"
+  },
+  "summary": {
+    "met": 0,
+    "unmet_with_ladder": 7,
+    "unmet_ladder_exhausted": 0,
+    "applies_when_skipped": 0
+  },
+  "stop_decision": "continue",
+  "timestamp": "2026-05-02T10:05:00Z"
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "2",
+  "phase": 4,
+  "subject_name": "Jane Doe",
+  "slug": "jane-doe",
+  "best_handle": "jdoe",
+  "facts": [
+    {
+      "fact_id": "fact_1",
+      "slot_id": "current_role",
+      "claim": "[REDACTED — internal source, see Phase 2 promotion log]",
+      "grade": "I",
+      "sources": [],
+      "internal": {"approved": "2026-04-30"},
+      "date": "2026-04-15",
+      "notes": ""
+    },
+    {
+      "fact_id": "fact_2",
+      "slot_id": "current_role",
+      "claim": "[REDACTED — internal source, see Phase 2 promotion log]",
+      "grade": "I",
+      "sources": [],
+      "internal": {"approved": "2026-04-30"},
+      "date": "2026-04-20",
+      "notes": ""
+    }
+  ],
+  "contradictions": [],
+  "name_collision": {"checked": true, "resolved": true, "evidence": []},
+  "ts": "2026-05-02T10:00:00Z"
+}
