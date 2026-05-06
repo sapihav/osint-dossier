@@ -2,6 +2,36 @@
 
 ## Unreleased
 
+R25 closed — Phase 0 `00-tooling.json` is now script-produced, not
+agent-transcribed. `scripts/check-tools.sh` gains a `--json` mode that
+emits the exact stage-artifact shape; SKILL.md Phase 0 step 5 is now
+a single deterministic `bash check-tools.sh --json … > stages/00-tooling.json`
+invocation. Eliminates the silent-desync class of bug where the
+artifact's `clis_available` / `env_vars_set` arrays could ship empty
+even when the same run demonstrably invoked those CLIs in later
+phases. Behaviour-equivalent for downstream consumers (no schema
+change, no field rename); only the production path changes from
+LLM-transcription to script-output.
+
+### Script changes
+
+- `scripts/check-tools.sh` — add `--json <subject> [context...]` mode.
+  Available iff binary on PATH AND (no env var required OR env var
+  non-empty). Same definition drives `has_search`. Hand-rolled JSON
+  emitter (no jq dependency, since jq is one of the tools we check
+  for). Slug recipe matches `first-volley.sh` exactly. Exit 1 if
+  `has_search:false` (artifact still written); exit 2 if subject
+  missing/empty-slug.
+- `tests/scripts/test-check-tools-json.sh` — 31 assertions across 9
+  test cases. Uses tmp shim binaries on a synthesised PATH; no
+  network, no real CLIs needed.
+
+### SKILL.md changes
+
+- Phase 0 — drop the human-readable preflight step (now redundant
+  with the JSON artifact). Step 5 becomes the single
+  `check-tools.sh --json` invocation. Renumbered: 7 steps → 6.
+
 R23 closed — operator-facing dossier-quality calibration band added
 to Phase 7 Coverage. Pure operator UX; does not gate stop_decision,
 escalation, or any phase logic.

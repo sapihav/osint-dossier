@@ -153,24 +153,29 @@ before fanning out.
 
 ## Phase 0 — Preflight
 
-1. Run `bash .claude/skills/osint-dossier/scripts/check-tools.sh` once. Log which
-   CLIs are available.
-2. Parse `$ARGUMENTS`. Extract: `subject_name`, optional `context` list
+1. Parse `$ARGUMENTS`. Extract: `subject_name`, optional `context` list
    (company, city, role).
+2. If no `subject_name` — use `AskUserQuestion` to collect one. Never guess.
 3. Create the work folder and stage subdir: `./osint-<subject-slug>/stages/`
    (slug = lowercase name, ASCII, hyphens for spaces).
-4. If no `subject_name` — use `AskUserQuestion` to collect one. Never guess.
-5. Decide the minimum viable toolset for this run:
-   - Need ≥ 1 of: `perplexity`, `tavily`, `exa`, `jina`, or built-in `WebSearch`.
-6. **Persist the stage artifact** (always, including on toolset failure —
-   the file is the diagnostic record of the early-stop). `Write`
-   `./osint-<slug>/stages/00-tooling.json`:
+4. Minimum viable toolset for this run: need ≥ 1 of `perplexity`,
+   `tavily`, `exa`, `jina`, or built-in `WebSearch`.
+5. **Generate the stage artifact** with a single deterministic command —
+   do **not** transcribe `check-tools.sh`'s human-readable output:
+   ```
+   bash .claude/skills/osint-dossier/scripts/check-tools.sh --json \
+     "$subject_name" $context > ./osint-<slug>/stages/00-tooling.json
+   ```
+   The script emits one-line JSON of shape:
    ```json
    {"schema_version":"1","phase":0,"clis_available":["perplexity","jina"],
     "env_vars_set":["PERPLEXITY_API_KEY","JINA_API_KEY"],"has_search":true,
     "subject_name":"<name>","context":["..."],"slug":"<slug>","ts":"<ISO>"}
    ```
-7. If `has_search` is false — stop and report. The 00-tooling.json artifact
+   The artifact is always written, including when no search CLI is
+   usable — the script exits 1 with `has_search:false` so the file is
+   the diagnostic record of the early-stop.
+6. If `has_search` is false — stop and report. The 00-tooling.json artifact
    is left on disk so the operator can see exactly which CLIs/env vars
    were missing.
 
