@@ -370,7 +370,7 @@ SKILL.md Phase 1.
 
 **Effort:** S. ~30 lines reference + 1 line SKILL.md.
 
-### R25. Phase 0 tooling artifact: deterministic, not transcribed [NEW 2026-05-06]
+### R25. Phase 0 tooling artifact: deterministic, not transcribed ✓ done 2026-05-06
 **Source:** GH issue #2 (sapihav, 2026-05-06).
 
 **Problem.** `stages/00-tooling.json` sometimes ships with empty
