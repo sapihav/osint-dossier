@@ -619,6 +619,50 @@ The Coverage block reports met-count + per-grade distribution
 (derived by counting each met slot's strongest evidence grade) — there
 is no `depth_score` in v2.
 
+**Quality band (operator calibration).** Render `{{quality_band}}` and
+`{{quality_band_meaning}}` as a deterministic function of
+`summary.met` and `len(slots)` plus the grade distribution from the
+previous bullet. `len(slots)` here is the v2 denominator after
+`applies_when_skipped` is removed (per phase-6-spec §4.1 invariant
+b). Let `top_grade_share` be the fraction of met slots whose
+strongest evidence is Grade A (consulted only in the Professional
+band, where `summary.met > 0` is guaranteed). Conditions are in
+integer form to avoid float-equality fragility.
+
+| Band | Condition | `quality_band_meaning` (substitute verbatim) |
+|---|---|---|
+| Professional report | `summary.met == len(slots)` AND `top_grade_share ≥ 0.5` | shippable for high-stakes decisions |
+| Solid due diligence | `10 * summary.met ≥ 7 * len(slots)` (and not Professional) | actionable for normal due-diligence tasks; residual gaps are minor |
+| Quick background check | `2 * summary.met ≥ len(slots)` (and not above) | surface-level only; flag remaining gaps to the consumer |
+| Insufficient | otherwise | re-run or expand sourcing before relying on this dossier |
+
+The strings in the `quality_band_meaning` column are the **single
+source of truth** — substitute them verbatim into the template. The
+template's HTML-comment legend lists band names + conditions only and
+defers to this table for meanings (no duplication).
+
+**Edge case.** If `len(slots) == 0` (every catalog slot has
+`applies_when` evaluating to skip), the band is `Insufficient` by
+definition — there is nothing to be confident about.
+
+**Worked enumeration on the current 7-slot catalog** (assuming no
+applies_when skips, so `len(slots) == 7`):
+
+| `summary.met` | `met_ratio` | Band (assuming `top_grade_share ≥ 0.5` for met=7) |
+|---|---|---|
+| 7 | 1.000 | Professional report (or Solid if Grade-A share < 0.5) |
+| 6 | 0.857 | Solid due diligence |
+| 5 | 0.714 | Solid due diligence |
+| 4 | 0.571 | Quick background check |
+| 3 | 0.429 | Insufficient |
+| 2 | 0.286 | Insufficient |
+| 1 | 0.143 | Insufficient |
+| 0 | 0.000 | Insufficient |
+
+The band is operator UX — it does not gate stop_decision, escalation,
+or any other phase. It is purely a label on the rendered Coverage
+block. Do not invent additional bands.
+
 The Audit footer adds the `meta_checks{}` block: render
 `contradictions_resolved` and `phase_2_attested` verbatim. Only
 `phase_2_attested == "incomplete"` triggers a warning surface;

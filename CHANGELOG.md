@@ -1,5 +1,38 @@
 # Changelog
 
+## Unreleased
+
+R23 closed — operator-facing dossier-quality calibration band added
+to Phase 7 Coverage. Pure operator UX; does not gate stop_decision,
+escalation, or any phase logic.
+
+### Render changes
+
+- `assets/dossier-template.md` — Coverage block gains a `Quality
+  band:` line. The HTML-comment legend lists band names + conditions
+  only; meaning strings live in SKILL.md (single source of truth).
+- `SKILL.md` Phase 7 — adds a deterministic mapping table from
+  `summary.met` and `len(slots)` (Phase 6 v2) plus Grade-A share
+  across met slots to one of four labels: *Professional report*,
+  *Solid due diligence*, *Quick background check*, *Insufficient*.
+  Includes worked enumeration on the 7-slot catalog and the
+  `len(slots) == 0` edge case.
+
+### Bands (integer-form conditions, no float equality)
+
+| Band | Condition |
+|---|---|
+| Professional report | `summary.met == len(slots)` AND `top_grade_share ≥ 0.5` |
+| Solid due diligence | `10 * summary.met ≥ 7 * len(slots)` (and not Professional) |
+| Quick background check | `2 * summary.met ≥ len(slots)` (and not above) |
+| Insufficient | otherwise (including `len(slots) == 0`) |
+
+`len(slots)` is the v2 denominator after `applies_when_skipped` is
+removed (per phase-6-spec §4.1 invariant b), so the band is robust
+to per-run skips. Cuts (≥70% / ≥50%) chosen to align with the
+parity reference's 4-band scale on a 7-slot catalog (5/7 → Solid,
+4/7 → Quick).
+
 ## v0.5.0 — 2026-05-02
 
 R20 closed — Phase 6 redesign to a unified slot model. Clean break

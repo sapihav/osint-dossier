@@ -43,6 +43,13 @@ block:
 - `phase_2_attested` = "skipped" (no Phase 2 was attempted in
   this fixture's run; no warning surface — `skipped` is a valid
   attestation, only `incomplete` warns).
+- `quality_band` = "Insufficient" (R23). Integer-form check:
+  `2 * summary.met (=2) < len(slots) (=7)` ⇒ Quick condition fails
+  ⇒ Insufficient. `top_grade_share` not consulted (only the
+  Professional band reads it).
+- `quality_band_meaning` = "re-run or expand sourcing before
+  relying on this dossier" — substituted verbatim from the SKILL.md
+  Phase 7 mapping table (single source of truth per R23).
 
 ## Key assertions
 

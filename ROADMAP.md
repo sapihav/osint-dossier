@@ -340,10 +340,14 @@ relations. Not a priority until a consumer exists.
 HTML / PDF / JSON-export of the dossier. YAGNI unless an actual
 consumer asks.
 
-### R23. Operator-facing dossier-quality calibration narrative [NEW 2026-05-02]
-**Blocked on R20.** The Phase 7 render shape changes with the slot
-model; calibration bands have to be keyed off the v2 metrics, not
-v1's `depth_score`.
+### R23. Operator-facing dossier-quality calibration narrative ✓ done 2026-05-04
+Shipped: 4-band quality calibration in Phase 7 Coverage. Bands keyed
+off v2 `summary.met` and `len(slots)` (integer-form conditions; ≥70%
+Solid / ≥50% Quick / 100%+Grade-A Professional), deterministic table
+in SKILL.md Phase 7 with a worked enumeration on the 7-slot catalog.
+Template adds a `Quality band:` line; HTML legend lists conditions
+only and defers to SKILL.md for meaning strings (single source of
+truth). Pure operator UX — does not gate stop_decision or escalation.
 
 **Problem.** Phase 7 currently surfaces the depth_score and met-count
 bare. There is no operator-facing "what does this number actually

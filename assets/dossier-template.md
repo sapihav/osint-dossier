@@ -20,6 +20,13 @@
        D — unverified (single low-credibility mention)
        I — internal, operator-approved (Phase 2; paraphrase only; never counts
            toward A-grade confirmation)
+   - Quality band (Coverage): operator-facing calibration. SKILL.md Phase 7 holds
+     the band → `quality_band_meaning` mapping (single source of truth — do not
+     duplicate the meaning strings here). Bands by condition:
+       Professional report     — all applicable slots met AND ≥half of met slots are Grade A.
+       Solid due diligence     — ≥70% of applicable slots met (and not Professional).
+       Quick background check  — ≥50% of applicable slots met (and not above).
+       Insufficient            — <50% of applicable slots met (or no applicable slots at all).
 -->
 
 # OSINT Dossier — {{subject_name}}
@@ -51,6 +58,7 @@ Not run.
 ## Coverage
 - Slots met: {{met_count}}/{{total_slots}}{{#if applies_when_skipped}} ({{applies_when_skipped}} not applicable this run){{/if}}
 - Grade distribution across met slots: {{grade_distribution}}
+- Quality band: {{quality_band}} — {{quality_band_meaning}}
 - Process attestation:
   - Contradictions resolved: {{contradictions_resolved}}
   - Internal-intelligence phase: {{phase_2_attested}}{{#if phase_2_incomplete}} ⚠ Phase 2 started but did not reach a terminal gate{{/if}}

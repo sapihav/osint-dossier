@@ -20,6 +20,7 @@
 ## Coverage
 - Slots met: 1/7
 - Grade distribution across met slots: {B: 1}
+- Quality band: Insufficient — re-run or expand sourcing before relying on this dossier
 - Process attestation:
   - Contradictions resolved: true
   - Internal-intelligence phase: skipped
