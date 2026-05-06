@@ -161,10 +161,13 @@ before fanning out.
 4. Minimum viable toolset for this run: need ≥ 1 of `perplexity`,
    `tavily`, `exa`, `jina`, or built-in `WebSearch`.
 5. **Generate the stage artifact** with a single deterministic command —
-   do **not** transcribe `check-tools.sh`'s human-readable output:
+   do **not** transcribe `check-tools.sh`'s human-readable output. Pass
+   each context token as its own quoted argument (or use a bash array)
+   so multi-word tokens like `"New York"` survive as one element of
+   `context`, not two:
    ```
    bash .claude/skills/osint-dossier/scripts/check-tools.sh --json \
-     "$subject_name" $context > ./osint-<slug>/stages/00-tooling.json
+     "$subject_name" "${context[@]}" > ./osint-<slug>/stages/00-tooling.json
    ```
    The script emits one-line JSON of shape:
    ```json

@@ -19,18 +19,39 @@ LLM-transcription to script-output.
   Available iff binary on PATH AND (no env var required OR env var
   non-empty). Same definition drives `has_search`. Hand-rolled JSON
   emitter (no jq dependency, since jq is one of the tools we check
-  for). Slug recipe matches `first-volley.sh` exactly. Exit 1 if
-  `has_search:false` (artifact still written); exit 2 if subject
-  missing/empty-slug.
-- `tests/scripts/test-check-tools-json.sh` — 31 assertions across 9
+  for). Escapes `\` `"` and the named control chars (`\b \f \n \r \t`);
+  other 0x00–0x1F bytes get `\uXXXX`; multi-byte UTF-8 passes through
+  unchanged. Slug recipe matches `first-volley.sh` exactly. Exit 1 if
+  `has_search:false`; exit 2 if subject missing or normalises to an
+  empty slug — the artifact is still written in every case so the
+  file remains the diagnostic record of the early-stop.
+- `tests/scripts/test-check-tools-json.sh` — 40 assertions across 11
   test cases. Uses tmp shim binaries on a synthesised PATH; no
-  network, no real CLIs needed.
+  network, no real CLIs needed. Covers shape, `has_search` semantics,
+  env-var gating, slug recipe, ISO timestamp, JSON escaping
+  (including control chars), and non-ASCII subject preservation.
 
 ### SKILL.md changes
 
 - Phase 0 — drop the human-readable preflight step (now redundant
   with the JSON artifact). Step 5 becomes the single
-  `check-tools.sh --json` invocation. Renumbered: 7 steps → 6.
+  `check-tools.sh --json` invocation. Renumbered: 7 steps → 6. The
+  example uses `"${context[@]}"` so multi-word context tokens like
+  `"New York"` survive as one element of `context[]` instead of
+  splitting on whitespace.
+
+### Behaviour change worth noting
+
+- Human-mode `has_search` now uses the same `is_available()`
+  predicate as the JSON artifact: a CLI counts only when the binary
+  is on PATH **and** any required env var is non-empty. Previously
+  human-mode `has_search` counted bin-only as available (env var
+  unset → still counted), which was inconsistent with the warning
+  `⚠  <bin> — installed, but $<VAR> is not set` printed two lines
+  earlier. Effect on operators: a setup with the binary installed
+  but the API key missing now correctly reports "no search CLI
+  usable" (exit 1) instead of "preflight OK" — the run would have
+  failed at the first call anyway.
 
 R23 closed — operator-facing dossier-quality calibration band added
 to Phase 7 Coverage. Pure operator UX; does not gate stop_decision,

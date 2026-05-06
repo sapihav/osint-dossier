@@ -16,6 +16,8 @@ set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_SH="$HERE/install.sh"
 
+say() { printf '%s\n' "$*"; }
+
 # Tool table — single source of truth for both modes.
 # Each row: "<bin>|<env_var>|<category>"
 # category ∈ {search, scrape, shell}
@@ -41,25 +43,82 @@ is_available() {
 
 # ----- JSON mode --------------------------------------------------------------
 
+# Hand-rolled JSON emitter: jq itself is one of the tools we check for, so
+# the artifact must be emittable without jq. Inputs are CLI args (subject
+# plus optional context tokens). Escapes: backslash, double-quote, and the
+# named control chars (\b \f \n \r \t); other control chars 0x00–0x1F get
+# \uXXXX. Multi-byte UTF-8 passes through unchanged (valid in JSON strings).
+json_escape() {
+  local s="$1" out="" i ch n
+  for (( i=0; i<${#s}; i++ )); do
+    ch="${s:i:1}"
+    case "$ch" in
+      '\') out+='\\' ;;
+      '"') out+='\"' ;;
+      $'\b') out+='\b' ;;
+      $'\f') out+='\f' ;;
+      $'\n') out+='\n' ;;
+      $'\r') out+='\r' ;;
+      $'\t') out+='\t' ;;
+      *)
+        # Non-ASCII multi-byte chars in UTF-8 locales also fall here; their
+        # codepoint is > 31, so they pass through unmodified. In a C locale
+        # bash indexes by byte, and high bytes (>= 0x80) likewise pass through.
+        # `printf '%d' "'$ch"` returns a signed value on some platforms when
+        # the byte has the high bit set (0xD0 → -48), so mask to 8 bits before
+        # the control-char check — otherwise high UTF-8 bytes would be
+        # mistaken for control chars.
+        printf -v n '%d' "'$ch"
+        n=$(( n & 0xff ))
+        if (( n < 32 )); then
+          printf -v ch '\\u%04x' "$n"
+        fi
+        out+="$ch"
+        ;;
+    esac
+  done
+  printf '%s' "$out"
+}
+
+json_array() {
+  local first=1 item
+  printf '['
+  for item in "$@"; do
+    [ $first -eq 1 ] || printf ','
+    printf '"%s"' "$(json_escape "$item")"
+    first=0
+  done
+  printf ']'
+}
+
+# Emit the Phase 0 stage artifact to stdout. Returns:
+#   0  artifact written, has_search true
+#   1  artifact written, has_search false
+#   2  artifact written with empty subject_name and/or empty slug — caller
+#      must treat as failure (cannot create work folder), but the file
+#      remains valid JSON for diagnostic purposes.
 emit_json() {
   local subject="${1:-}"
   [ $# -gt 0 ] && shift
   local -a context=("$@")
+  local err=0
 
   if [ -z "$subject" ]; then
-    echo "check-tools.sh --json: subject required" >&2
-    return 2
+    say "check-tools.sh --json: subject required" >&2
+    err=2
   fi
 
   # slug recipe matches first-volley.sh: lowercase ASCII, runs of non-alnum → hyphen.
-  local slug
-  slug=$(printf '%s' "$subject" \
-    | LC_ALL=C tr '[:upper:]' '[:lower:]' \
-    | LC_ALL=C tr -c 'a-z0-9' '-' \
-    | sed 's/--*/-/g; s/^-//; s/-$//')
-  if [ -z "$slug" ]; then
-    echo "check-tools.sh --json: empty slug from subject '$subject'" >&2
-    return 2
+  local slug=""
+  if [ -n "$subject" ]; then
+    slug=$(printf '%s' "$subject" \
+      | LC_ALL=C tr '[:upper:]' '[:lower:]' \
+      | LC_ALL=C tr -c 'a-z0-9' '-' \
+      | sed 's/--*/-/g; s/^-//; s/-$//')
+    if [ -z "$slug" ]; then
+      say "check-tools.sh --json: empty slug from subject '$subject'" >&2
+      err=2
+    fi
   fi
 
   local -a clis_available=() env_vars_set=()
@@ -77,21 +136,6 @@ emit_json() {
   local ts
   ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
-  # Hand-rolled JSON emitter: jq itself is one of the tools we check for, so
-  # the artifact must be emittable without jq. Inputs are CLI args (subject
-  # plus optional context tokens). Backslash and double-quote get escaped;
-  # UTF-8 passes through unchanged (valid in JSON strings).
-  json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-  json_array() {
-    local first=1 item
-    printf '['
-    for item in "$@"; do
-      [ $first -eq 1 ] || printf ','
-      printf '"%s"' "$(json_escape "$item")"
-      first=0
-    done
-    printf ']'
-  }
   printf '{"schema_version":"1","phase":0,'
   printf '"clis_available":%s,' "$(json_array "${clis_available[@]+"${clis_available[@]}"}")"
   printf '"env_vars_set":%s,' "$(json_array "${env_vars_set[@]+"${env_vars_set[@]}"}")"
@@ -101,19 +145,22 @@ emit_json() {
   printf '"slug":"%s",' "$(json_escape "$slug")"
   printf '"ts":"%s"}\n' "$ts"
 
+  if [ "$err" -ne 0 ]; then
+    return "$err"
+  fi
   [ "$has_search" = true ] || return 1
   return 0
 }
 
 if [ "${1:-}" = "--json" ]; then
   shift
-  emit_json "$@"
-  exit $?
+  # Use `|| true` to keep `set -e` from short-circuiting before we capture
+  # emit_json's distinct exit codes (0 / 1 / 2).
+  emit_json "$@" || exit $?
+  exit 0
 fi
 
 # ----- Human-readable mode ----------------------------------------------------
-
-say() { printf '%s\n' "$*"; }
 
 # Print the install command for a binary by delegating to install.sh.
 # Empty string if install.sh doesn't know about it (e.g. jq, curl).
