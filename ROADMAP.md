@@ -214,6 +214,58 @@ atomic-write-and-checkpoint, optional.
 content stays out of disk per the 4-gate protocol; only the gate
 audit log is persisted).
 
+### R24. Phase 1 fan-out: surface silent provider drops + jina envelope mismatch [NEW 2026-05-06]
+**Source:** GH issue #3 (sapihav, 2026-05-06).
+
+**Problem.** `first-volley.sh` documents a parallel fan-out across all
+available L1 search providers (perplexity / exa / tavily / jina). On a
+host where exa + tavily directly return valid JSON envelopes, only
+jina ends up in `01-seed.json:merged_from`. Other providers' output
+disappears between launch and merge — silently, no operator-visible
+error. Two distinct sub-bugs:
+
+- **B1 — silent drops.** exa/tavily volley files don't reach
+  `merge-volley.sh`'s output. Suspect: `run_with_timeout` killing
+  before stdout flushes, or merge-side `jq` swallowing errors. Not
+  diagnosed; `01-seed.json` only reports `merged_from`, not what was
+  attempted.
+- **B2 — jina envelope mismatch.** `jina search` returns plain
+  text, not the `{schema_version, provider, command, result,
+  citations}` envelope SKILL.md's Tool layer documents. Either jina
+  needs `--format json`, or wrapping, or the documented contract is
+  aspirational — currently misleading.
+
+**Why P1.** Silent degradation of Phase 1 seed quality on every
+multi-provider host. The cost-ladder design ("cheapest tier that can
+fill a slot") presupposes L1 providers are interchangeable peers;
+today only jina contributes seed data, so operators pay for redundancy
+they don't get. Affects every dossier run on a fully-configured host.
+
+**Scope.**
+1. Diagnose B1 — instrument `first-volley.sh` (per-provider exit
+   code + bytes-written) and `merge-volley.sh` (per-file
+   accept/reject reason) to find the actual drop point.
+2. Fix B1 root cause (no speculation here — wait for diagnosis).
+3. Resolve B2 — pick one of: pass `--format json` to jina if
+   supported; wrap jina output; or update SKILL.md Tool layer to
+   document jina's actual contract.
+4. Add operator-visible drop surface — proposal in issue: emit
+   `stages/01-volley-status.json` with per-provider
+   `{launched, written_bytes, exit_code, merged}`, OR extend
+   `01-seed.json` with `dropped:[{provider, reason}]`. Pick whichever
+   fits cleaner with existing artifact discipline.
+
+**Touches.** `scripts/first-volley.sh`, `scripts/merge-volley.sh`,
+SKILL.md Phase 1 prose + Tool-layer envelope contract, possibly a
+new artifact under `stages/`.
+
+**Effort.** M. Diagnosis is the unknown; fix once root cause is
+identified. ~50–100 LOC across 2–3 files.
+
+**Not in scope.** Adding new search providers (R4 already shipped
+brave + parallel as L1 backends; this issue is about making the
+*existing* set actually fan out).
+
 ---
 
 ## P2 — Real but lower priority
@@ -317,6 +369,49 @@ file holds the actual tactics; SKILL.md stays tight.
 SKILL.md Phase 1.
 
 **Effort:** S. ~30 lines reference + 1 line SKILL.md.
+
+### R25. Phase 0 tooling artifact: deterministic, not transcribed [NEW 2026-05-06]
+**Source:** GH issue #2 (sapihav, 2026-05-06).
+
+**Problem.** `stages/00-tooling.json` sometimes ships with empty
+`clis_available` / `env_vars_set` arrays despite the same run
+demonstrably invoking those CLIs in later phases (cost ledger and
+`01-seed.json:merged_from` both prove the CLIs were present). Root
+cause: SKILL.md Phase 0 step 6 instructs the agent to *transcribe*
+`check-tools.sh`'s human-readable output into JSON — an
+LLM-faithfulness step, nondeterministic. When transcription gets
+skipped or compressed, arrays come out empty. Downstream phases
+proceed correctly because `first-volley.sh:have()` re-checks
+binary presence directly, so the artifact silently desyncs from
+reality.
+
+**Severity.** Low for the run (no behaviour change). Medium for
+diagnostics — `00-tooling.json` is *the* artifact operators read
+when troubleshooting "why didn't tool X get invoked" and it's
+currently lying about reality.
+
+**Scope.** Eliminate the transcription step. Two equally cheap
+options (pick whichever the implementer prefers):
+
+1. Add `--json` flag to `scripts/check-tools.sh` emitting the
+   exact `00-tooling.json` shape. Phase 0 step then becomes
+   `bash scripts/check-tools.sh --json > stages/00-tooling.json`.
+2. Or split: keep `check-tools.sh` human-readable, add
+   `scripts/write-tooling.sh "$slug" "$subject" "$context"` that
+   writes the JSON artifact directly.
+
+Either way, `00-tooling.json` becomes script-produced, not
+agent-produced.
+
+**Follow-up audit (out of scope here, file separately if found):**
+any other `stages/*.json` currently produced by transcription
+rather than by a script is a candidate for the same treatment.
+First pass through SKILL.md to identify which artifacts those are.
+
+**Touches.** `scripts/check-tools.sh` (or new
+`scripts/write-tooling.sh`), SKILL.md Phase 0 step 6.
+
+**Effort.** S. ~20 LOC + SKILL.md prose tweak.
 
 ---
 
