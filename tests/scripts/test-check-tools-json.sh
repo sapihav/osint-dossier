@@ -23,22 +23,31 @@ EOF
 }
 
 # Run check-tools.sh in --json mode under a controlled PATH and env.
-# $1 = shim dir, $2 = quoted env-var assignments string,
-# remaining args = positional args to the script.
+# $1 = shim dir, $2 = env-var assignments string, rest = positional args.
+# Captures stdout (JSON) and stderr separately into globals so tests don't
+# depend on stream-interleaving order.
+#   RC          — exit code
+#   JSON        — verbatim stdout (the JSON line)
+#   STDERR      — verbatim stderr
 run_json() {
   local shim_dir="$1"; shift
   local env_block="$1"; shift
-  local out rc
+  local stdout_file stderr_file
+  stdout_file=$(mktemp)
+  stderr_file=$(mktemp)
   set +e
-  out=$(env -i \
+  env -i \
     PATH="$shim_dir:/usr/bin:/bin" \
     HOME="$HOME" \
     LANG="${LANG:-C}" \
     LC_ALL="${LC_ALL:-C}" \
-    bash -c "$env_block bash \"\$0\" --json \"\$@\"" "$SCRIPT" "$@" 2>&1)
-  rc=$?
+    bash -c "$env_block bash \"\$0\" --json \"\$@\"" "$SCRIPT" "$@" \
+    >"$stdout_file" 2>"$stderr_file"
+  RC=$?
   set -e
-  printf '%s\n%s' "$rc" "$out"
+  JSON=$(cat "$stdout_file")
+  STDERR=$(cat "$stderr_file")
+  rm -f "$stdout_file" "$stderr_file"
 }
 
 pass=0
@@ -56,129 +65,110 @@ assert_eq() {
   fi
 }
 
-# Helper: extract just the last line of mixed stderr+stdout output. The script
-# emits stderr first (on error), then JSON to stdout; combined they appear in
-# that order under `2>&1`, so the JSON is always the final line.
-last_line() { printf '%s\n' "$1" | tail -n 1; }
+assert_contains() {
+  local label="$1" needle="$2" haystack="$3"
+  case "$haystack" in
+    *"$needle"*) pass=$((pass + 1)); printf '  ✓ %s\n' "$label" ;;
+    *) fail=$((fail + 1)); printf '  ✗ %s   (needle: %s)\n     haystack: %s\n' \
+         "$label" "$needle" "$haystack" ;;
+  esac
+}
 
 # ---------------------------------------------------------------------------
 echo "Test 1: subject required when --json given with no args (artifact still emitted)"
 shim=$(make_shim_dir)
-result=$(run_json "$shim" "" "")
-rc=$(printf '%s' "$result" | head -1)
-out=$(printf '%s' "$result" | tail -n +2)
-json=$(last_line "$out")
-assert_eq "exit code 2" "2" "$rc"
-case "$out" in
-  *"subject required"*) pass=$((pass+1)); echo "  ✓ stderr mentions 'subject required'" ;;
-  *) fail=$((fail+1)); echo "  ✗ stderr: $out" ;;
-esac
+run_json "$shim" "" ""
+assert_eq "exit code 2" "2" "$RC"
+assert_contains "stderr mentions 'subject required'" "subject required" "$STDERR"
 assert_eq "JSON still emitted (subject_name empty)" "" \
-  "$(printf '%s' "$json" | jq -r '.subject_name')"
+  "$(printf '%s' "$JSON" | jq -r '.subject_name')"
 assert_eq "JSON still emitted (slug empty)" "" \
-  "$(printf '%s' "$json" | jq -r '.slug')"
+  "$(printf '%s' "$JSON" | jq -r '.slug')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 2: empty slug rejected (artifact still emitted with subject preserved)"
 shim=$(make_shim_dir)
-result=$(run_json "$shim" "" "   ")
-rc=$(printf '%s' "$result" | head -1)
-out=$(printf '%s' "$result" | tail -n +2)
-json=$(last_line "$out")
-assert_eq "exit code 2" "2" "$rc"
-case "$out" in
-  *"empty slug"*) pass=$((pass+1)); echo "  ✓ stderr mentions 'empty slug'" ;;
-  *) fail=$((fail+1)); echo "  ✗ stderr: $out" ;;
-esac
+run_json "$shim" "" "   "
+assert_eq "exit code 2" "2" "$RC"
+assert_contains "stderr mentions 'empty slug'" "empty slug" "$STDERR"
 assert_eq "subject_name preserved" "   " \
-  "$(printf '%s' "$json" | jq -r '.subject_name')"
+  "$(printf '%s' "$JSON" | jq -r '.subject_name')"
 assert_eq "slug empty" "" \
-  "$(printf '%s' "$json" | jq -r '.slug')"
+  "$(printf '%s' "$JSON" | jq -r '.slug')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 3: no search CLIs → has_search false, exit 1, artifact still emitted"
 shim=$(make_shim_dir)  # no shims at all
-result=$(run_json "$shim" "" "Jane Doe")
-rc=$(printf '%s' "$result" | head -1)
-json=$(printf '%s' "$result" | tail -n +2)
-assert_eq "exit code 1" "1" "$rc"
-assert_eq "schema_version" "1" "$(printf '%s' "$json" | jq -r '.schema_version')"
-assert_eq "phase"          "0" "$(printf '%s' "$json" | jq -r '.phase')"
-assert_eq "has_search"     "false" "$(printf '%s' "$json" | jq -r '.has_search')"
-assert_eq "subject_name"   "Jane Doe" "$(printf '%s' "$json" | jq -r '.subject_name')"
-assert_eq "slug"           "jane-doe" "$(printf '%s' "$json" | jq -r '.slug')"
-assert_eq "context empty"  "[]" "$(printf '%s' "$json" | jq -c '.context')"
+run_json "$shim" "" "Jane Doe"
+assert_eq "exit code 1" "1" "$RC"
+assert_eq "schema_version" "1" "$(printf '%s' "$JSON" | jq -r '.schema_version')"
+assert_eq "phase"          "0" "$(printf '%s' "$JSON" | jq -r '.phase')"
+assert_eq "has_search"     "false" "$(printf '%s' "$JSON" | jq -r '.has_search')"
+assert_eq "subject_name"   "Jane Doe" "$(printf '%s' "$JSON" | jq -r '.subject_name')"
+assert_eq "slug"           "jane-doe" "$(printf '%s' "$JSON" | jq -r '.slug')"
+assert_eq "context empty"  "[]" "$(printf '%s' "$JSON" | jq -c '.context')"
 assert_eq "clis_available has only system tools" "0" \
-  "$(printf '%s' "$json" | jq '.clis_available | map(select(. as $c | ["perplexity","exa","tavily","jina","parallel-cli","apify","brightdata"] | index($c))) | length')"
-assert_eq "env_vars_set empty" "[]" "$(printf '%s' "$json" | jq -c '.env_vars_set')"
+  "$(printf '%s' "$JSON" | jq '.clis_available | map(select(. as $c | ["perplexity","exa","tavily","jina","parallel-cli","apify","brightdata"] | index($c))) | length')"
+assert_eq "env_vars_set empty" "[]" "$(printf '%s' "$JSON" | jq -c '.env_vars_set')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 4: bin present but env var unset → CLI not counted as available"
 shim=$(make_shim_dir perplexity)
-result=$(run_json "$shim" "" "Jane Doe")
-rc=$(printf '%s' "$result" | head -1)
-json=$(printf '%s' "$result" | tail -n +2)
-assert_eq "exit code 1 (no usable search)" "1" "$rc"
-assert_eq "has_search false" "false" "$(printf '%s' "$json" | jq -r '.has_search')"
+run_json "$shim" "" "Jane Doe"
+assert_eq "exit code 1 (no usable search)" "1" "$RC"
+assert_eq "has_search false" "false" "$(printf '%s' "$JSON" | jq -r '.has_search')"
 assert_eq "perplexity NOT in clis_available" "false" \
-  "$(printf '%s' "$json" | jq -r '.clis_available | any(. == "perplexity")')"
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "perplexity")')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 5: bin + env var present → CLI counted, has_search true, exit 0"
 shim=$(make_shim_dir perplexity)
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=sk-test " "Jane Doe" "Acme Corp" "Berlin")
-rc=$(printf '%s' "$result" | head -1)
-json=$(printf '%s' "$result" | tail -n +2)
-assert_eq "exit code 0" "0" "$rc"
-assert_eq "has_search true" "true" "$(printf '%s' "$json" | jq -r '.has_search')"
+run_json "$shim" "PERPLEXITY_API_KEY=sk-test " "Jane Doe" "Acme Corp" "Berlin"
+assert_eq "exit code 0" "0" "$RC"
+assert_eq "has_search true" "true" "$(printf '%s' "$JSON" | jq -r '.has_search')"
 assert_eq "perplexity in clis_available" "true" \
-  "$(printf '%s' "$json" | jq -r '.clis_available | any(. == "perplexity")')"
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "perplexity")')"
 assert_eq "PERPLEXITY_API_KEY in env_vars_set" "true" \
-  "$(printf '%s' "$json" | jq -r '.env_vars_set | any(. == "PERPLEXITY_API_KEY")')"
+  "$(printf '%s' "$JSON" | jq -r '.env_vars_set | any(. == "PERPLEXITY_API_KEY")')"
 assert_eq "context propagates" '["Acme Corp","Berlin"]' \
-  "$(printf '%s' "$json" | jq -c '.context')"
+  "$(printf '%s' "$JSON" | jq -c '.context')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 6: multiple search providers + scraper"
 shim=$(make_shim_dir perplexity exa apify)
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=k EXA_API_KEY=k APIFY_TOKEN=t " "Jane Doe")
-rc=$(printf '%s' "$result" | head -1)
-json=$(printf '%s' "$result" | tail -n +2)
-assert_eq "exit code 0" "0" "$rc"
+run_json "$shim" "PERPLEXITY_API_KEY=k EXA_API_KEY=k APIFY_TOKEN=t " "Jane Doe"
+assert_eq "exit code 0" "0" "$RC"
 assert_eq "perplexity in clis_available" "true" \
-  "$(printf '%s' "$json" | jq -r '.clis_available | any(. == "perplexity")')"
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "perplexity")')"
 assert_eq "exa in clis_available" "true" \
-  "$(printf '%s' "$json" | jq -r '.clis_available | any(. == "exa")')"
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "exa")')"
 assert_eq "apify in clis_available" "true" \
-  "$(printf '%s' "$json" | jq -r '.clis_available | any(. == "apify")')"
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "apify")')"
 assert_eq "tavily NOT in clis_available" "false" \
-  "$(printf '%s' "$json" | jq -r '.clis_available | any(. == "tavily")')"
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "tavily")')"
 assert_eq "APIFY_TOKEN in env_vars_set" "true" \
-  "$(printf '%s' "$json" | jq -r '.env_vars_set | any(. == "APIFY_TOKEN")')"
+  "$(printf '%s' "$JSON" | jq -r '.env_vars_set | any(. == "APIFY_TOKEN")')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 7: slug normalisation (mixed case + punctuation)"
 shim=$(make_shim_dir perplexity)
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=k " "John Q. Public-Smith")
-rc=$(printf '%s' "$result" | head -1)
-json=$(printf '%s' "$result" | tail -n +2)
-assert_eq "exit code 0" "0" "$rc"
+run_json "$shim" "PERPLEXITY_API_KEY=k " "John Q. Public-Smith"
+assert_eq "exit code 0" "0" "$RC"
 assert_eq "slug normalised" "john-q-public-smith" \
-  "$(printf '%s' "$json" | jq -r '.slug')"
+  "$(printf '%s' "$JSON" | jq -r '.slug')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 8: ts is ISO 8601 UTC"
 shim=$(make_shim_dir perplexity)
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=k " "Jane Doe")
-json=$(printf '%s' "$result" | tail -n +2)
-ts=$(printf '%s' "$json" | jq -r '.ts')
+run_json "$shim" "PERPLEXITY_API_KEY=k " "Jane Doe"
+ts=$(printf '%s' "$JSON" | jq -r '.ts')
 case "$ts" in
   [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]T[0-9][0-9]:[0-9][0-9]:[0-9][0-9]Z)
     pass=$((pass+1)); echo "  ✓ ts matches ISO 8601 UTC pattern: $ts" ;;
@@ -190,27 +180,23 @@ rm -rf "$shim"
 # ---------------------------------------------------------------------------
 echo "Test 9: subject with embedded double-quote escapes correctly"
 shim=$(make_shim_dir perplexity)
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=k " 'Jane "Q" Doe')
-json=$(printf '%s' "$result" | tail -n +2)
+run_json "$shim" "PERPLEXITY_API_KEY=k " 'Jane "Q" Doe'
 assert_eq "subject_name decoded" 'Jane "Q" Doe' \
-  "$(printf '%s' "$json" | jq -r '.subject_name')"
+  "$(printf '%s' "$JSON" | jq -r '.subject_name')"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
 echo "Test 10: control chars in subject get JSON-escaped"
 shim=$(make_shim_dir perplexity)
-# Embed a tab and a newline. jq -r will decode them back to the original bytes.
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=k " $'Tab\there\nNewline')
-json=$(printf '%s' "$result" | tail -n +2)
+# Embed a tab and a newline. jq -r decodes them back to the original bytes.
+run_json "$shim" "PERPLEXITY_API_KEY=k " $'Tab\there\nNewline'
 assert_eq "subject_name decodes to original (tab+newline)" $'Tab\there\nNewline' \
-  "$(printf '%s' "$json" | jq -r '.subject_name')"
+  "$(printf '%s' "$JSON" | jq -r '.subject_name')"
 # The on-the-wire JSON must NOT contain a literal tab/newline inside the
-# subject_name value — that would be invalid JSON. jq parsing it via the
-# previous assertion proves validity; a raw grep confirms the escape.
-case "$json" in
-  *'\t'*'\n'*) pass=$((pass+1)); echo "  ✓ raw JSON contains \\t and \\n escapes" ;;
-  *) fail=$((fail+1)); echo "  ✗ raw JSON missing escapes: $json" ;;
-esac
+# subject_name value — that would be invalid JSON. jq parsing it above
+# proves validity; a raw grep confirms the escape sequence is on the wire.
+assert_contains "raw JSON contains \\t escape" '\t' "$JSON"
+assert_contains "raw JSON contains \\n escape" '\n' "$JSON"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------
@@ -218,13 +204,40 @@ echo "Test 11: non-ASCII subject — JSON valid, subject preserved, slug empty, 
 shim=$(make_shim_dir perplexity)
 # Cyrillic input. Slug recipe (ASCII-only) yields empty slug → exit 2,
 # but the artifact must still parse and the subject must round-trip.
-result=$(run_json "$shim" "PERPLEXITY_API_KEY=k " "Іван Петренко")
-rc=$(printf '%s' "$result" | head -1)
-json=$(last_line "$(printf '%s' "$result" | tail -n +2)")
-assert_eq "exit code 2"          "2" "$rc"
+run_json "$shim" "PERPLEXITY_API_KEY=k " "Іван Петренко"
+assert_eq "exit code 2"          "2" "$RC"
 assert_eq "subject_name preserved" "Іван Петренко" \
-  "$(printf '%s' "$json" | jq -r '.subject_name')"
-assert_eq "slug empty"           "" "$(printf '%s' "$json" | jq -r '.slug')"
+  "$(printf '%s' "$JSON" | jq -r '.subject_name')"
+assert_eq "slug empty"           "" "$(printf '%s' "$JSON" | jq -r '.slug')"
+rm -rf "$shim"
+
+# ---------------------------------------------------------------------------
+echo "Test 12: apify env-var alternation — APIFY_API_TOKEN counts when APIFY_TOKEN unset"
+shim=$(make_shim_dir perplexity apify)
+run_json "$shim" "PERPLEXITY_API_KEY=k APIFY_API_TOKEN=alt " "Jane Doe"
+assert_eq "exit code 0" "0" "$RC"
+assert_eq "apify in clis_available" "true" \
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "apify")')"
+assert_eq "APIFY_API_TOKEN reported in env_vars_set" "true" \
+  "$(printf '%s' "$JSON" | jq -r '.env_vars_set | any(. == "APIFY_API_TOKEN")')"
+assert_eq "APIFY_TOKEN NOT in env_vars_set" "false" \
+  "$(printf '%s' "$JSON" | jq -r '.env_vars_set | any(. == "APIFY_TOKEN")')"
+rm -rf "$shim"
+
+# ---------------------------------------------------------------------------
+echo "Test 13: subject with embedded newline — stderr stays single-line on empty-slug error"
+shim=$(make_shim_dir perplexity)
+# Slug pipeline collapses embedded newlines to nothing → empty slug → err=2.
+# The stderr message must not contain a raw newline from the subject —
+# otherwise log scrapers split one warning into multiple lines. The JSON
+# itself still escapes \n correctly via json_escape (verified in Test 10).
+# `$STDERR` is captured via `$(cat …)` which strips trailing newlines, so
+# a properly-sanitised one-line message has ZERO interior newlines.
+run_json "$shim" "PERPLEXITY_API_KEY=k " $'\n\n\n'
+assert_eq "exit code 2" "2" "$RC"
+interior_newlines=$(printf '%s' "$STDERR" | tr -cd '\n' | wc -c | tr -d ' ')
+assert_eq "stderr has no interior newlines (subject sanitised)" "0" "$interior_newlines"
+assert_contains "stderr mentions 'empty slug'" "empty slug" "$STDERR"
 rm -rf "$shim"
 
 # ---------------------------------------------------------------------------

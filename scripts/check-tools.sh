@@ -13,32 +13,62 @@
 
 set -euo pipefail
 
+# Requires bash >= 4 (`printf -v`, `${arr[@]+…}`, `read -r … <<<…`).
 HERE="$(cd "$(dirname "$0")" && pwd)"
 INSTALL_SH="$HERE/install.sh"
+
+# shellcheck source=_slug.sh
+. "$HERE/_slug.sh"
 
 say() { printf '%s\n' "$*"; }
 
 # Tool table — single source of truth for both modes.
-# Each row: "<bin>|<env_var>|<category>"
-# category ∈ {search, scrape, shell}
+# Each row: "<bin>|<env_var_spec>|<category>"
+#   env_var_spec — empty (no env var required), or a colon-separated list
+#                  of env-var names; the CLI counts as available if ANY of
+#                  the listed vars is non-empty (matches SKILL.md Tool layer
+#                  for `apify`: APIFY_TOKEN OR APIFY_API_TOKEN).
+#   category     — search | scrape | shell
 TOOLS=(
   "perplexity|PERPLEXITY_API_KEY|search"
   "exa|EXA_API_KEY|search"
   "tavily|TAVILY_API_KEY|search"
   "jina|JINA_API_KEY|search"
   "parallel-cli|PARALLEL_API_KEY|search"
-  "apify|APIFY_TOKEN|scrape"
+  "apify|APIFY_TOKEN:APIFY_API_TOKEN|scrape"
   "brightdata|BRIGHTDATA_API_KEY|scrape"
   "jq||shell"
   "curl||shell"
 )
 
-# A CLI is "available" iff: binary on PATH AND (no env var required OR env var non-empty).
-# Both modes use this definition so the JSON artifact matches what the operator sees.
+# A CLI is "available" iff: binary on PATH AND (no env var required OR
+# at least one env var in the colon-separated spec is non-empty). Both
+# modes use this definition so the JSON artifact matches what the operator
+# sees in the human report.
 is_available() {
-  local bin="$1" env_var="$2"
+  local bin="$1" env_spec="$2"
   command -v "$bin" >/dev/null 2>&1 || return 1
-  [ -z "$env_var" ] || [ -n "${!env_var:-}" ]
+  [ -z "$env_spec" ] && return 0
+  local var
+  while IFS= read -r var; do
+    [ -n "${!var:-}" ] && return 0
+  done < <(printf '%s\n' "$env_spec" | tr ':' '\n')
+  return 1
+}
+
+# Return the FIRST set env-var name from a colon-separated spec, or empty.
+# Used so `env_vars_set` reports the var the operator actually exported,
+# not every alternate.
+first_set_env() {
+  local env_spec="$1" var
+  [ -z "$env_spec" ] && return 0
+  while IFS= read -r var; do
+    if [ -n "${!var:-}" ]; then
+      printf '%s' "$var"
+      return 0
+    fi
+  done < <(printf '%s\n' "$env_spec" | tr ':' '\n')
+  return 0
 }
 
 # ----- JSON mode --------------------------------------------------------------
@@ -48,6 +78,9 @@ is_available() {
 # plus optional context tokens). Escapes: backslash, double-quote, and the
 # named control chars (\b \f \n \r \t); other control chars 0x00–0x1F get
 # \uXXXX. Multi-byte UTF-8 passes through unchanged (valid in JSON strings).
+# json_escape — `'\\'` and `'\\\\'` here are deliberate bash-literal
+# backslashes; shellcheck SC1003 (info-level) flags them but this is the
+# right form for matching one literal `\` and emitting a `\\` JSON escape.
 json_escape() {
   local s="$1" out="" i ch n
   for (( i=0; i<${#s}; i++ )); do
@@ -108,27 +141,31 @@ emit_json() {
     err=2
   fi
 
-  # slug recipe matches first-volley.sh: lowercase ASCII, runs of non-alnum → hyphen.
+  # slug recipe is in scripts/_slug.sh (sourced at top of this file). Same
+  # function is sourced by first-volley.sh, so the two scripts cannot drift.
   local slug=""
   if [ -n "$subject" ]; then
-    slug=$(printf '%s' "$subject" \
-      | LC_ALL=C tr '[:upper:]' '[:lower:]' \
-      | LC_ALL=C tr -c 'a-z0-9' '-' \
-      | sed 's/--*/-/g; s/^-//; s/-$//')
+    slug=$(slug_from "$subject")
     if [ -z "$slug" ]; then
-      say "check-tools.sh --json: empty slug from subject '$subject'" >&2
+      # Sanitise subject for the stderr message — embedded newlines / CRs
+      # would wrap the warning across lines and confuse log scrapers. The
+      # JSON output itself escapes these correctly via json_escape.
+      local subj_safe="${subject//$'\n'/ }"
+      subj_safe="${subj_safe//$'\r'/ }"
+      say "check-tools.sh --json: empty slug from subject '$subj_safe'" >&2
       err=2
     fi
   fi
 
   local -a clis_available=() env_vars_set=()
   local has_search=false
-  local row bin env_var category
+  local row bin env_spec category set_var
   for row in "${TOOLS[@]}"; do
-    IFS='|' read -r bin env_var category <<<"$row"
-    if is_available "$bin" "$env_var"; then
+    IFS='|' read -r bin env_spec category <<<"$row"
+    if is_available "$bin" "$env_spec"; then
       clis_available+=("$bin")
-      [ -n "$env_var" ] && env_vars_set+=("$env_var")
+      set_var=$(first_set_env "$env_spec")
+      [ -n "$set_var" ] && env_vars_set+=("$set_var")
       [ "$category" = "search" ] && has_search=true
     fi
   done
@@ -136,6 +173,8 @@ emit_json() {
   local ts
   ts=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 
+  # `${arr[@]+"${arr[@]}"}` expands to nothing when `arr` is empty, which
+  # is what we want under `set -u` — bare `${arr[@]}` would error.
   printf '{"schema_version":"1","phase":0,'
   printf '"clis_available":%s,' "$(json_array "${clis_available[@]+"${clis_available[@]}"}")"
   printf '"env_vars_set":%s,' "$(json_array "${env_vars_set[@]+"${env_vars_set[@]}"}")"
@@ -171,10 +210,13 @@ hint_for() {
 }
 
 check_bin() {
-  local bin="$1" env_var="${2:-}"
+  local bin="$1" env_spec="${2:-}"
   if command -v "$bin" >/dev/null 2>&1; then
-    if [ -n "$env_var" ] && [ -z "${!env_var:-}" ]; then
-      say "  ⚠  $bin — installed, but \$$env_var is not set"
+    if [ -n "$env_spec" ] && ! is_available "$bin" "$env_spec"; then
+      # Build a human-readable list of the env-var names from the spec
+      # ("FOO" or "FOO or BAR") so the colon syntax never leaks.
+      local pretty="${env_spec//:/ or \$}"
+      say "  ⚠  $bin — installed, but \$$pretty is not set"
     else
       say "  ✓  $bin"
     fi
@@ -201,7 +243,7 @@ check_bin parallel-cli PARALLEL_API_KEY
 
 say ""
 say "Scraping / platform extraction:"
-check_bin apify        APIFY_TOKEN
+check_bin apify        APIFY_TOKEN:APIFY_API_TOKEN
 check_bin brightdata   BRIGHTDATA_API_KEY
 
 say ""
@@ -212,9 +254,9 @@ check_bin curl ""
 say ""
 has_search=0
 for row in "${TOOLS[@]}"; do
-  IFS='|' read -r bin env_var category <<<"$row"
+  IFS='|' read -r bin env_spec category <<<"$row"
   [ "$category" = "search" ] || continue
-  if is_available "$bin" "$env_var"; then
+  if is_available "$bin" "$env_spec"; then
     has_search=1
     break
   fi

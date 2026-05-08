@@ -15,21 +15,35 @@ LLM-transcription to script-output.
 
 ### Script changes
 
+- `scripts/_slug.sh` (new) — single source of truth for the subject-slug
+  recipe. Sourced by both `check-tools.sh` and `first-volley.sh` so the
+  two scripts cannot drift on slug derivation.
 - `scripts/check-tools.sh` — add `--json <subject> [context...]` mode.
-  Available iff binary on PATH AND (no env var required OR env var
-  non-empty). Same definition drives `has_search`. Hand-rolled JSON
-  emitter (no jq dependency, since jq is one of the tools we check
-  for). Escapes `\` `"` and the named control chars (`\b \f \n \r \t`);
-  other 0x00–0x1F bytes get `\uXXXX`; multi-byte UTF-8 passes through
-  unchanged. Slug recipe matches `first-volley.sh` exactly. Exit 1 if
+  Available iff binary on PATH AND (no env var required OR at least one
+  env var in the colon-separated spec is non-empty). Same definition
+  drives `has_search`. Hand-rolled JSON emitter (no jq dependency,
+  since jq is one of the tools we check for). Escapes `\` `"` and the
+  named control chars (`\b \f \n \r \t`); other 0x00–0x1F bytes get
+  `\uXXXX`; multi-byte UTF-8 passes through unchanged. Exit 1 if
   `has_search:false`; exit 2 if subject missing or normalises to an
   empty slug — the artifact is still written in every case so the
   file remains the diagnostic record of the early-stop.
-- `tests/scripts/test-check-tools-json.sh` — 40 assertions across 11
+- `scripts/check-tools.sh` — `apify` env-var spec is now
+  `APIFY_TOKEN:APIFY_API_TOKEN` (alternation), matching SKILL.md Tool
+  layer's documented contract. `env_vars_set` reports whichever var is
+  actually exported. Human mode prints `$APIFY_TOKEN or $APIFY_API_TOKEN`
+  in the warning when neither is set.
+- `scripts/check-tools.sh` — empty-slug stderr message strips embedded
+  newlines / CRs from the subject before printing, so log scrapers
+  can't mis-split one warning across multiple lines (JSON output itself
+  was already correctly escaped).
+- `tests/scripts/test-check-tools-json.sh` — 48 assertions across 13
   test cases. Uses tmp shim binaries on a synthesised PATH; no
-  network, no real CLIs needed. Covers shape, `has_search` semantics,
-  env-var gating, slug recipe, ISO timestamp, JSON escaping
-  (including control chars), and non-ASCII subject preservation.
+  network, no real CLIs needed. `run_json` now captures stdout / stderr
+  on separate fds (no more `2>&1` interleave assumption) and exposes
+  them as `$JSON` / `$STDERR` / `$RC` globals. New cases: env-var
+  alternation (`APIFY_API_TOKEN` substitutes for `APIFY_TOKEN`); stderr
+  sanitisation under newline-laden subjects.
 
 ### SKILL.md changes
 

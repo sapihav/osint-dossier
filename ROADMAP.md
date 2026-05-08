@@ -370,7 +370,7 @@ SKILL.md Phase 1.
 
 **Effort:** S. ~30 lines reference + 1 line SKILL.md.
 
-### R25. Phase 0 tooling artifact: deterministic, not transcribed ✓ done 2026-05-06
+### R25. Phase 0 tooling artifact: deterministic, not transcribed ✓ done 2026-05-09
 **Source:** GH issue #2 (sapihav, 2026-05-06).
 
 **Problem.** `stages/00-tooling.json` sometimes ships with empty
@@ -523,6 +523,7 @@ non-trivial duplicate rate.
 - **R7** ✓ done 2026-04-27 — Cost & elapsed accounting (`spend-add.sh` / `spend-total.sh`).
 - **R12** ✓ done 2026-04-27 — Sidecar `dossier.facts.jsonl` (provenance graph).
 - **R24** ✓ done 2026-05-08 — Phase 1 drop-surface + jina envelope wrap (`scripts/first-volley.sh` + `scripts/merge-volley.sh` instrument per-provider attempts; `stages/01-volley-status.json` is the operator-visible drop log).
+- **R25** ✓ done 2026-05-09 — Phase 0 deterministic tooling artifact (`scripts/check-tools.sh --json`; slug recipe extracted to `scripts/_slug.sh` shared with `first-volley.sh`; `apify` env-var alternation `APIFY_TOKEN:APIFY_API_TOKEN` matches SKILL.md Tool layer).
 
 ---
 

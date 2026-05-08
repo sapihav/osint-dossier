@@ -33,11 +33,12 @@ subject="$1"; shift
 context="$*"
 query="$subject${context:+ $context}"
 
-# slug: lowercase, ASCII, hyphens for runs of non-alnum
-slug=$(printf '%s' "$subject" \
-  | LC_ALL=C tr '[:upper:]' '[:lower:]' \
-  | LC_ALL=C tr -c 'a-z0-9' '-' \
-  | sed 's/--*/-/g; s/^-//; s/-$//')
+# Slug recipe lives in scripts/_slug.sh — sourced here AND by check-tools.sh
+# so the two scripts cannot drift on slug derivation.
+HERE="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=_slug.sh
+. "$HERE/_slug.sh"
+slug=$(slug_from "$subject")
 [ -z "$slug" ] && { echo "first-volley: empty slug from subject" >&2; exit 1; }
 
 work="./osint-$slug"

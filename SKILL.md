@@ -173,10 +173,14 @@ before fanning out.
    do **not** transcribe `check-tools.sh`'s human-readable output. Pass
    each context token as its own quoted argument (or use a bash array)
    so multi-word tokens like `"New York"` survive as one element of
-   `context`, not two:
+   `context`, not two. Declare the array as `local -a context=()` so
+   `"${context[@]+"${context[@]}"}"` expands to *nothing* when empty
+   (vs. `"${context[@]:-}"`, which would inject a stray empty string):
    ```
+   local -a context=()
    bash .claude/skills/osint-dossier/scripts/check-tools.sh --json \
-     "$subject_name" "${context[@]}" > ./osint-<slug>/stages/00-tooling.json
+     "$subject_name" "${context[@]+"${context[@]}"}" \
+     > ./osint-<slug>/stages/00-tooling.json
    ```
    The script emits one-line JSON of shape:
    ```json
@@ -184,9 +188,11 @@ before fanning out.
     "env_vars_set":["PERPLEXITY_API_KEY","JINA_API_KEY"],"has_search":true,
     "subject_name":"<name>","context":["..."],"slug":"<slug>","ts":"<ISO>"}
    ```
-   The artifact is always written, including when no search CLI is
-   usable — the script exits 1 with `has_search:false` so the file is
-   the diagnostic record of the early-stop.
+   The artifact is always written, regardless of exit code: 0 = at
+   least one search CLI usable; 1 = `has_search:false` (early-stop
+   diagnostic record); 2 = subject missing or normalises to an empty
+   slug (artifact's `slug` is `""`, treat as no-run — do not proceed
+   to Phase 1).
 6. If `has_search` is false — stop and report. The 00-tooling.json artifact
    is left on disk so the operator can see exactly which CLIs/env vars
    were missing.
