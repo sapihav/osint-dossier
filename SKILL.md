@@ -57,6 +57,7 @@ convention (one artifact per phase):
 |---|---|---|
 | 0 | `stages/00-tooling.json` | preflight: CLIs available, env vars set, `has_search` bool |
 | 1 | `stages/01-seed.json` | merged search results (written by `merge-volley.sh`) |
+| 1 | `stages/01-volley-status.json` | per-provider attempt log: `{launched, exit_code, written_bytes, stderr_tail, merge_outcome, merged_rows}` for each L1 provider — operator-visible drop surface (R24) |
 | 2 | `stages/02-internal.gates.log` | 4-gate audit trail — gate state only, **not** content |
 | 3 | `stages/03-platform-<platform>.json` | one file per platform queried (linkedin, instagram, …) |
 | 4 | `stages/04-cross-ref.json` | graded fact list pre-render (same shape as `dossier.facts.jsonl` plus working notes) |
@@ -71,7 +72,8 @@ Rules:
   state log is. The redactable content file `phase-2-raw.md` stays at the
   top level under operator control (per the 4-gate protocol). This is the
   core security invariant — do not relax it.
-- Scratch intermediates (`volley-*.json`, `seed-summary.md`, `phase-2-raw.md`,
+- Scratch intermediates (`volley-*.json`, `volley-*.status.json`,
+  `volley-*.stderr`, `seed-summary.md`, `phase-2-raw.md`,
   `content/<…>.md`, `spend.jsonl`) stay at the top level. `stages/` holds
   only the structured per-phase artifacts.
 - A run interrupted between Phase N and N+1 can be resumed: re-invoke the
@@ -100,6 +102,13 @@ Every CLI returns a JSON envelope of the shape:
 ```json
 { "schema_version": "1", "provider": "...", "command": "...", "result": { ... }, "citations": [...] }
 ```
+
+**jina exception (R24).** `jina search --json` emits a bare `{"results":[…]}`
+object, not the envelope above. `first-volley.sh` wraps jina's stdout into
+the envelope shape (`provider:"jina"`, `command:"search"`,
+`result.results:[…]`) before merge-volley reads it, so downstream consumers
+see uniform shape. If you call `jina search` outside the wrapper, expect
+the bare shape.
 
 If a CLI is missing or misconfigured, the skill surfaces a clear install hint —
 it does not silently fall back.
@@ -186,11 +195,19 @@ data touched in this phase.
    background call per available CLI (perplexity / exa / jina / tavily),
    staggers starts by 0.5 s, applies a per-job 60 s timeout, and writes
    `./osint-<slug>/volley-<provider>.json` per provider (these are scratch
-   intermediates, not stage artifacts). Then run
+   intermediates, not stage artifacts). It also writes a per-provider
+   attempt record `volley-<provider>.status.json` capturing exit code,
+   bytes written, and a stderr tail — every launched provider gets one,
+   even if the volley file is empty. Then run
    `bash scripts/merge-volley.sh "$slug"` to dedup by canonical URL and emit
    `./osint-<slug>/stages/01-seed.json` in the unified
    `{schema_version, merged_from, rows[], answers[]}` shape — this is the
-   Phase 1 stage artifact.
+   Phase 1 stage artifact. Merge also emits `stages/01-volley-status.json`
+   joining the per-provider attempt records with each provider's accept /
+   reject reason at merge time. **If `dropped_providers > 0` on merge
+   stdout, inspect `stages/01-volley-status.json` before proceeding** —
+   the cost-ladder design assumes L1 providers are interchangeable peers,
+   so a silent drop means paying for redundancy you didn't get.
    **Manual fallback** (if the wrappers are unavailable): run up to 4
    parallel CLI calls yourself, then merge by hand. If no typed search
    CLI is available at all, fall back to Claude Code's built-in

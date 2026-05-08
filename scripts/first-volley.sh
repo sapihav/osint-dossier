@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # first-volley.sh — Phase 1 fan-out: launch up to 4 search CLIs in parallel,
 # stagger 0.5 s, per-job 60 s timeout. Writes envelopes to ./osint-<slug>/.
+#
+# R24: every launched provider gets a status row in
+# ./osint-<slug>/volley-<provider>.status.json with
+# {launched, exit_code, written_bytes, stderr_tail}. merge-volley.sh
+# consumes these to build stages/01-volley-status.json.
 
 set -euo pipefail
 
@@ -10,7 +15,8 @@ Usage: first-volley.sh <subject_name> [context_keyword...]
 
 Runs perplexity, exa, jina, tavily in parallel (those with env vars set).
 Each call: 60 s timeout, 0.5 s stagger.
-Output: ./osint-<slug>/volley-<provider>.json
+Output: ./osint-<slug>/volley-<provider>.json (envelope on success)
+        ./osint-<slug>/volley-<provider>.status.json (always; per-provider attempt record)
 Stdout: JSON summary {volleys, ok, failed, files}.
 Stderr: progress.
 
@@ -63,25 +69,76 @@ run_with_timeout() {
   return "$rc"
 }
 
+# Wrap a launcher: capture stderr to a per-provider log, write status row,
+# normalise jina's bare {results:[...]} into envelope shape if needed.
+# Args: provider out_file launcher_fn
+run_provider() {
+  local prov="$1" out="$2" launcher="$3"
+  local err="$work/volley-$prov.stderr"
+  local status="$work/volley-$prov.status.json"
+  : > "$err"
+
+  local rc=0
+  "$launcher" 2>"$err" || rc=$?
+
+  # Post-process jina: bare {results:[...]} → wrap into envelope.
+  if [ "$prov" = "jina" ] && [ -s "$out" ]; then
+    if jq -e 'type == "object" and has("results") and (has("result") | not)' \
+         "$out" >/dev/null 2>&1; then
+      local tmp="$out.tmp"
+      jq -c '{schema_version:"1", provider:"jina", command:"search", result:{results:.results}}' \
+        "$out" > "$tmp" && mv "$tmp" "$out"
+    fi
+  fi
+
+  local bytes=0
+  [ -f "$out" ] && bytes=$(wc -c <"$out" | tr -d ' ')
+
+  local stderr_tail=""
+  if [ -s "$err" ]; then
+    stderr_tail=$(tail -c 500 "$err" 2>/dev/null || true)
+  fi
+
+  jq -n \
+    --arg prov "$prov" \
+    --argjson exit_code "$rc" \
+    --argjson bytes "$bytes" \
+    --arg stderr_tail "$stderr_tail" \
+    '{schema_version:"1", provider:$prov, launched:true,
+      exit_code:$exit_code, written_bytes:$bytes,
+      stderr_tail:$stderr_tail}' \
+    > "$status"
+
+  return "$rc"
+}
+
 # Each launcher writes its envelope to $work/volley-<provider>.json,
 # returns 0 on success, non-zero on failure/timeout.
 launch_perplexity() {
   local out="$work/volley-perplexity.json"
-  run_with_timeout 60 perplexity ask --model sonar "$query" --out "$out"
+  _do() { run_with_timeout 60 perplexity ask --model sonar "$query" --out "$out"; }
+  run_provider perplexity "$out" _do
 }
 launch_exa() {
   local out="$work/volley-exa.json"
-  run_with_timeout 60 exa answer "$query" --out "$out"
+  _do() { run_with_timeout 60 exa answer "$query" --out "$out"; }
+  run_provider exa "$out" _do
 }
 launch_jina() {
   local out="$work/volley-jina.json"
-  # jina prints envelope on stdout; capture via redirect.
-  # exec replaces the bash subshell so SIGTERM lands on the jina process directly.
-  run_with_timeout 60 bash -c 'exec jina search "$1" >"$2"' _ "$query" "$out"
+  # jina search prints to stdout; --json gives {"results":[...]} (NOT the
+  # documented envelope). We capture stdout and then run_provider wraps it
+  # into envelope shape. exec replaces the bash subshell so SIGTERM lands
+  # on the jina process directly.
+  _do() {
+    run_with_timeout 60 bash -c 'exec jina search --json "$1" >"$2"' _ "$query" "$out"
+  }
+  run_provider jina "$out" _do
 }
 launch_tavily() {
   local out="$work/volley-tavily.json"
-  run_with_timeout 60 tavily search "$query" --out "$out"
+  _do() { run_with_timeout 60 tavily search "$query" --out "$out"; }
+  run_provider tavily "$out" _do
 }
 
 # Detect availability: binary present AND env var set.

@@ -214,7 +214,7 @@ atomic-write-and-checkpoint, optional.
 content stays out of disk per the 4-gate protocol; only the gate
 audit log is persisted).
 
-### R24. Phase 1 fan-out: surface silent provider drops + jina envelope mismatch [NEW 2026-05-06]
+### R24. Phase 1 fan-out: surface silent provider drops + jina envelope mismatch ✓ done 2026-05-08
 **Source:** GH issue #3 (sapihav, 2026-05-06).
 
 **Problem.** `first-volley.sh` documents a parallel fan-out across all
@@ -522,6 +522,7 @@ non-trivial duplicate rate.
 - **R6** ✓ done 2026-04-27 — `scripts/first-volley.sh` + `scripts/merge-volley.sh` (Phase 1 fan-out).
 - **R7** ✓ done 2026-04-27 — Cost & elapsed accounting (`spend-add.sh` / `spend-total.sh`).
 - **R12** ✓ done 2026-04-27 — Sidecar `dossier.facts.jsonl` (provenance graph).
+- **R24** ✓ done 2026-05-08 — Phase 1 drop-surface + jina envelope wrap (`scripts/first-volley.sh` + `scripts/merge-volley.sh` instrument per-provider attempts; `stages/01-volley-status.json` is the operator-visible drop log).
 
 ---
 

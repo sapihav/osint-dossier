@@ -2,6 +2,53 @@
 
 ## Unreleased
 
+R24 closed — Phase 1 fan-out gains operator-visible drop surface
+(`stages/01-volley-status.json`) and jina envelope normalisation.
+Source: GH issue #3.
+
+### Why
+
+Pre-R24, `01-seed.json:merged_from` only listed providers whose
+volley file was non-empty *and* parsed. Providers that timed out,
+401'd, or wrote nothing disappeared between launch and merge with
+no operator-visible record. jina was a special case: `jina search`
+prints plain text by default, and `jina search --json` returns a
+bare `{"results":[…]}` object that the documented envelope contract
+doesn't match — so jina's contribution was silently zero on every
+multi-provider run.
+
+### Changes
+
+- `scripts/first-volley.sh` — every launched provider now writes
+  `volley-<prov>.status.json` (`{schema_version, provider, launched,
+  exit_code, written_bytes, stderr_tail}`) regardless of success.
+  Stderr is captured to `volley-<prov>.stderr` and tail-trimmed
+  (500 B) into the status file.
+- `scripts/first-volley.sh` — `launch_jina` now passes `--json` and
+  wraps the bare `{results:[…]}` stdout into envelope shape
+  (`{schema_version:"1", provider:"jina", command:"search",
+  result:{results:[…]}}`) before returning, so downstream consumers
+  see uniform contract.
+- `scripts/merge-volley.sh` — emits new artifact
+  `stages/01-volley-status.json` joining per-provider attempt
+  records with each provider's merge outcome (`accepted` |
+  `rejected:<reason>`) and merged-row count. Stdout summary gains
+  `merged_providers` + `dropped_providers` counts.
+- `SKILL.md` — Phase 1 prose, stage-artifact table, and Tool-layer
+  envelope contract updated. Operators are instructed to inspect
+  `01-volley-status.json` whenever `dropped_providers > 0`.
+- `tests/scripts/test-volley.sh` — new bash test harness with
+  mocked CLIs covering envelope wrapping, silent-drop surfacing,
+  and dedup.
+
+### Not in this PR
+
+R24 scope #2 ("fix B1 root cause") was held back per the issue's
+"no speculation here — wait for diagnosis" rule. The status
+artifact is the diagnostic surface; root-cause fixes happen in
+follow-ups once a real run produces a `rejected:no-volley-file`
+row that points at a reproducible cause.
+
 R23 closed — operator-facing dossier-quality calibration band added
 to Phase 7 Coverage. Pure operator UX; does not gate stop_decision,
 escalation, or any phase logic.
