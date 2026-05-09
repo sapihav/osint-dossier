@@ -30,7 +30,7 @@ assert() {
 }
 
 # Build a sandboxed PATH with mock CLIs. Each mock honours --out FILE for
-# perplexity / exa / tavily; jina writes to stdout (matches real CLI).
+# perplexity / exa; tvly + jina write to stdout (jina) / file via -o (tvly).
 make_mocks() {
   local mode="$1" mockdir="$2"
   mkdir -p "$mockdir"
@@ -101,14 +101,14 @@ exit 0
 EOF
   chmod +x "$mockdir/jina"
 
-  # tavily: simulate a binary that writes nothing then exits non-zero —
+  # tvly: simulate a binary that writes nothing then exits non-zero —
   # this is the "silent drop" the issue describes.
-  cat >"$mockdir/tavily" <<'EOF'
+  cat >"$mockdir/tvly" <<'EOF'
 #!/usr/bin/env bash
-echo "mock-tavily: connection timeout" >&2
+echo "mock-tvly: connection timeout" >&2
 exit 28
 EOF
-  chmod +x "$mockdir/tavily"
+  chmod +x "$mockdir/tvly"
 }
 
 run_case() {
@@ -161,13 +161,13 @@ run_case() {
   assert "jina accepted" \
     "jq -e '.providers[] | select(.provider==\"jina\") | .merge_outcome == \"accepted\"' '$stat' >/dev/null"
 
-  # tavily silent drop must surface as rejected with non-zero exit + stderr.
-  assert "tavily rejected (no volley file)" \
-    "jq -e '.providers[] | select(.provider==\"tavily\") | .merge_outcome == \"rejected:no-volley-file\"' '$stat' >/dev/null"
-  assert "tavily exit_code != 0" \
-    "jq -e '.providers[] | select(.provider==\"tavily\") | .exit_code != 0' '$stat' >/dev/null"
-  assert "tavily stderr_tail captured" \
-    "jq -e '.providers[] | select(.provider==\"tavily\") | .stderr_tail | contains(\"timeout\")' '$stat' >/dev/null"
+  # tvly silent drop must surface as rejected with non-zero exit + stderr.
+  assert "tvly rejected (no volley file)" \
+    "jq -e '.providers[] | select(.provider==\"tvly\") | .merge_outcome == \"rejected:no-volley-file\"' '$stat' >/dev/null"
+  assert "tvly exit_code != 0" \
+    "jq -e '.providers[] | select(.provider==\"tvly\") | .exit_code != 0' '$stat' >/dev/null"
+  assert "tvly stderr_tail captured" \
+    "jq -e '.providers[] | select(.provider==\"tvly\") | .stderr_tail | contains(\"timeout\")' '$stat' >/dev/null"
 
   # Perplexity branch depends on case.
   if [ "$perp_mode" = "ok" ]; then
@@ -189,8 +189,8 @@ run_case() {
   trap - RETURN
 }
 
-run_case "case A — all upstream healthy except tavily" ok
-run_case "case B — perplexity 429, tavily timeout" fail
+run_case "case A — all upstream healthy except tvly" ok
+run_case "case B — perplexity 429, tvly timeout" fail
 
 echo
 echo "================ summary ================"

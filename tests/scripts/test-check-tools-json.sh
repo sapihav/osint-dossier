@@ -110,7 +110,7 @@ assert_eq "subject_name"   "Jane Doe" "$(printf '%s' "$JSON" | jq -r '.subject_n
 assert_eq "slug"           "jane-doe" "$(printf '%s' "$JSON" | jq -r '.slug')"
 assert_eq "context empty"  "[]" "$(printf '%s' "$JSON" | jq -c '.context')"
 assert_eq "clis_available has only system tools" "0" \
-  "$(printf '%s' "$JSON" | jq '.clis_available | map(select(. as $c | ["perplexity","exa","tavily","jina","parallel-cli","apify","brightdata"] | index($c))) | length')"
+  "$(printf '%s' "$JSON" | jq '.clis_available | map(select(. as $c | ["perplexity","exa","tvly","jina","parallel-cli","apify","brightdata"] | index($c))) | length')"
 assert_eq "env_vars_set empty" "[]" "$(printf '%s' "$JSON" | jq -c '.env_vars_set')"
 rm -rf "$shim"
 
@@ -149,8 +149,8 @@ assert_eq "exa in clis_available" "true" \
   "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "exa")')"
 assert_eq "apify in clis_available" "true" \
   "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "apify")')"
-assert_eq "tavily NOT in clis_available" "false" \
-  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "tavily")')"
+assert_eq "tvly NOT in clis_available" "false" \
+  "$(printf '%s' "$JSON" | jq -r '.clis_available | any(. == "tvly")')"
 assert_eq "APIFY_TOKEN in env_vars_set" "true" \
   "$(printf '%s' "$JSON" | jq -r '.env_vars_set | any(. == "APIFY_TOKEN")')"
 rm -rf "$shim"

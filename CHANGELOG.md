@@ -2,6 +2,46 @@
 
 ## Unreleased
 
+R26 — swap `tavily` (sapihav legacy) → `tvly` (official Tavily CLI from
+PyPI `tavily-cli==0.1.2`). The previous `sapihav/tavily-cli` curl
+installer is replaced by `pipx install tavily-cli==0.1.2`. Binary name
+changes from `tavily` to `tvly` everywhere. Reasoning: official
+`tvly` is the upstream-maintained CLI; using it eliminates a
+sapihav-side wrapper that lagged the API.
+
+### Script changes
+
+- `scripts/install.sh` — `tavily|curl|...sapihav/tavily-cli...` row
+  replaced with `tvly|pipx|tavily-cli==0.1.2`. Help text updated.
+- `scripts/check-tools.sh` — TOOLS row + human-mode `check_bin` call
+  + warning message renamed to `tvly` (env var still
+  `TAVILY_API_KEY`).
+- `scripts/first-volley.sh` — `launch_tavily` → `launch_tvly`. Command
+  changes from `tavily search "$q" --out "$out"` to
+  `tvly search "$q" --json -o "$out"` (official tvly's `--json` is
+  required to get JSON; flag is `-o`, not `--out`). `run_provider`
+  gains a tvly post-process step that wraps tvly's raw API response
+  (`{query, answer, results[]}`) into the documented envelope shape
+  (`{schema_version, provider, command, result}`), mirroring the
+  jina wrap (R24). Downstream merge-volley stays unchanged.
+- `scripts/merge-volley.sh` — `tavily)` case renamed to `tvly)` with
+  matching `source: "tvly"` / `provider: "tvly"` strings. jq logic
+  unchanged (still consumes `.result.results` and `.result.answer`,
+  same as pre-rename, courtesy of the new envelope wrap).
+- `tests/scripts/test-check-tools-json.sh` + `tests/scripts/test-volley.sh`
+  — assertions and mock binary names migrated from `tavily` to `tvly`.
+  All 48 + 24 assertions still green.
+
+### SKILL.md / README changes
+
+- `Bash(tavily:*)` → `Bash(tvly:*)` allowed-tool entry.
+- Tool layer table row renamed; status column reads
+  "official — `tavily-cli` (PyPI; binary is `tvly`)".
+- New "tvly exception" paragraph alongside the existing R24 jina
+  exception, documenting that `tvly --json` emits the raw Tavily API
+  body and `first-volley.sh` wraps it.
+- Cost-tier table + Phase 0/1 prose: `tavily` mentions become `tvly`.
+
 R25 closed — Phase 0 `00-tooling.json` is now script-produced, not
 agent-transcribed. `scripts/check-tools.sh` gains a `--json` mode that
 emits the exact stage-artifact shape; SKILL.md Phase 0 step 5 is now

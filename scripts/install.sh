@@ -30,7 +30,7 @@ set -euo pipefail
 TOOLS=(
   "perplexity|curl|https://raw.githubusercontent.com/sapihav/perplexity-cli/main/install.sh"
   "exa|curl|https://raw.githubusercontent.com/sapihav/exa-cli/main/install.sh"
-  "tavily|curl|https://raw.githubusercontent.com/sapihav/tavily-cli/main/install.sh"
+  "tvly|pipx|tavily-cli==0.1.2"
   "parallel-cli|curl|https://parallel.ai/install.sh"
   "apify|npm|apify-cli"
   "brightdata|npm|@brightdata/cli"
@@ -192,9 +192,10 @@ Usage: install.sh [--check | --line <bin>]
   --check           report status only; non-zero exit if any missing
   --line <bin>      print the install command for <bin>
 
-Tools installed: perplexity, exa, tavily (curl | bash from each repo's
+Tools installed: perplexity, exa (curl | bash from each sapihav repo's
                  install.sh, fetches the latest GitHub release binary);
-                 apify, brightdata (npm); jina (pipx). Public sources only.
+                 tvly (pipx, official tavily-cli pinned); apify, brightdata
+                 (npm); jina (pipx). Public sources only.
 EOF
     exit 0 ;;
   "")      mode_install; exit $? ;;

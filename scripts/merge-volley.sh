@@ -116,17 +116,17 @@ for f in "${volleys[@]}"; do
         else []
         end' "$f" 2>/dev/null || echo '[]')
       ;;
-    tavily)
+    tvly)
       rows=$(jq -c '
         ((.result.results // []) | map({
-          source: "tavily",
+          source: "tvly",
           url: (.url // ""),
           title: (.title // ""),
           snippet: (.content // .snippet // "")
         })) // []' "$f" 2>/dev/null || echo '[]')
       ans=$(jq -c '
         if (.result.answer // null) != null
-        then [{provider: "tavily", answer: .result.answer}]
+        then [{provider: "tvly", answer: .result.answer}]
         else []
         end' "$f" 2>/dev/null || echo '[]')
       ;;

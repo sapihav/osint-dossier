@@ -32,7 +32,7 @@ say() { printf '%s\n' "$*"; }
 TOOLS=(
   "perplexity|PERPLEXITY_API_KEY|search"
   "exa|EXA_API_KEY|search"
-  "tavily|TAVILY_API_KEY|search"
+  "tvly|TAVILY_API_KEY|search"
   "jina|JINA_API_KEY|search"
   "parallel-cli|PARALLEL_API_KEY|search"
   "apify|APIFY_TOKEN:APIFY_API_TOKEN|scrape"
@@ -237,7 +237,7 @@ say ""
 say "Search / retrieval:"
 check_bin perplexity   PERPLEXITY_API_KEY
 check_bin exa          EXA_API_KEY
-check_bin tavily       TAVILY_API_KEY
+check_bin tvly         TAVILY_API_KEY
 check_bin jina         JINA_API_KEY
 check_bin parallel-cli PARALLEL_API_KEY
 
@@ -265,7 +265,7 @@ done
 if [ "$has_search" -eq 0 ]; then
   say "⚠  No search CLI available. The skill will fall back to built-in"
   say "   WebSearch/WebFetch. Functionality is limited without a paid"
-  say "   provider (Perplexity / Exa / Tavily / Jina)."
+  say "   provider (Perplexity / Exa / Tavily (tvly) / Jina)."
   say ""
   say "   To install everything the skill expects:"
   say "     bash scripts/install.sh"

@@ -2,7 +2,7 @@
 allowed-tools:
   - Bash(perplexity:*)
   - Bash(exa:*)
-  - Bash(tavily:*)
+  - Bash(tvly:*)
   - Bash(jina:*)
   - Bash(apify:*)
   - Bash(brightdata:*)
@@ -92,7 +92,7 @@ stdout. The CLIs are the security boundary — the skill's job is orchestration.
 |---|---|---|
 | `perplexity` | local (own CLI, see roadmap at `~/src/CLI-tools-ROADMAP.md`) | `PERPLEXITY_API_KEY` |
 | `exa` | local (own CLI, planned) | `EXA_API_KEY` |
-| `tavily` | local (own CLI, planned) | `TAVILY_API_KEY` |
+| `tvly` | official — `tavily-cli` (PyPI; binary is `tvly`) | `TAVILY_API_KEY` |
 | `jina` | official — `jina-ai/cli` | `JINA_API_KEY` |
 | `apify` | official — `apify-cli` | `APIFY_TOKEN` or `APIFY_API_TOKEN` |
 | `brightdata` | official — `@brightdata/cli` | `BRIGHTDATA_API_KEY` (or MCP URL) |
@@ -109,6 +109,13 @@ the envelope shape (`provider:"jina"`, `command:"search"`,
 `result.results:[…]`) before merge-volley reads it, so downstream consumers
 see uniform shape. If you call `jina search` outside the wrapper, expect
 the bare shape.
+
+**tvly exception.** Official Tavily CLI's `tvly --json` emits the raw
+Tavily API body (`{query, answer, results[], ...}`), not the envelope above.
+`first-volley.sh` wraps tvly's output into the envelope shape
+(`provider:"tvly"`, `command:"search"`, `result:{answer, results, query}`)
+before merge-volley reads it. If you call `tvly` outside the wrapper, expect
+the raw body.
 
 If a CLI is missing or misconfigured, the skill surfaces a clear install hint —
 it does not silently fall back.
@@ -146,8 +153,8 @@ the default.
 
 | Tier | Cost / call | Providers |
 |---|---|---|
-| L1 | ~$0 | `WebSearch`, `perplexity` (sonar), `exa search`, `tavily` (basic) |
-| L2 | ~$0.01 | `jina read`, `tavily extract` |
+| L1 | ~$0 | `WebSearch`, `perplexity` (sonar), `exa search`, `tvly search` (basic) |
+| L2 | ~$0.01 | `jina read`, `tvly extract` |
 | L3 | ~$0.05–0.10 | `apify call <id>` per-platform extraction |
 | L4 | ~$0.50–$5 | `perplexity` (deep), `exa` (deep), `parallel-cli` (deep) |
 
@@ -168,7 +175,7 @@ before fanning out.
 3. Create the work folder and stage subdir: `./osint-<subject-slug>/stages/`
    (slug = lowercase name, ASCII, hyphens for spaces).
 4. Minimum viable toolset for this run: need ≥ 1 of `perplexity`,
-   `tavily`, `exa`, `jina`, or built-in `WebSearch`.
+   `tvly`, `exa`, `jina`, or built-in `WebSearch`.
 5. **Generate the stage artifact** with a single deterministic command —
    do **not** transcribe `check-tools.sh`'s human-readable output. Pass
    each context token as its own quoted argument (or use a bash array)
@@ -206,7 +213,7 @@ data touched in this phase.
 
 1. **Preferred:** run the wrapper
    `bash scripts/first-volley.sh "$subject_name" $context`. It fans out one
-   background call per available CLI (perplexity / exa / jina / tavily),
+   background call per available CLI (perplexity / exa / jina / tvly),
    staggers starts by 0.5 s, applies a per-job 60 s timeout, and writes
    `./osint-<slug>/volley-<provider>.json` per provider (these are scratch
    intermediates, not stage artifacts). It also writes a per-provider

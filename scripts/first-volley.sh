@@ -13,7 +13,7 @@ usage() {
   cat <<'EOF'
 Usage: first-volley.sh <subject_name> [context_keyword...]
 
-Runs perplexity, exa, jina, tavily in parallel (those with env vars set).
+Runs perplexity, exa, jina, tvly in parallel (those with env vars set).
 Each call: 60 s timeout, 0.5 s stagger.
 Output: ./osint-<slug>/volley-<provider>.json (envelope on success)
         ./osint-<slug>/volley-<provider>.status.json (always; per-provider attempt record)
@@ -92,6 +92,21 @@ run_provider() {
     fi
   fi
 
+  # Post-process tvly: official Tavily CLI's `--json` emits the raw API body
+  # ({query, answer, results[], ...}) without our envelope. Wrap so
+  # merge-volley.sh can consume `.result.results` / `.result.answer`
+  # uniformly across providers.
+  if [ "$prov" = "tvly" ] && [ -s "$out" ]; then
+    if jq -e 'type == "object" and (has("results") or has("answer")) and (has("result") | not)' \
+         "$out" >/dev/null 2>&1; then
+      local tmp="$out.tmp"
+      jq -c '{schema_version:"1", provider:"tvly", command:"search",
+              result:{answer:(.answer//null), results:(.results//[]),
+                      query:(.query//null)}}' \
+        "$out" > "$tmp" && mv "$tmp" "$out"
+    fi
+  fi
+
   local bytes=0
   [ -f "$out" ] && bytes=$(wc -c <"$out" | tr -d ' ')
 
@@ -136,10 +151,13 @@ launch_jina() {
   }
   run_provider jina "$out" _do
 }
-launch_tavily() {
-  local out="$work/volley-tavily.json"
-  _do() { run_with_timeout 60 tavily search "$query" --out "$out"; }
-  run_provider tavily "$out" _do
+launch_tvly() {
+  local out="$work/volley-tvly.json"
+  # Official `tvly` writes JSON only with --json; -o (not --out) saves to file.
+  # Schema is the raw Tavily API response: {query, answer, results[], ...}
+  # — no `result` envelope. run_provider's tvly post-process wraps it.
+  _do() { run_with_timeout 60 tvly search "$query" --json -o "$out"; }
+  run_provider tvly "$out" _do
 }
 
 # Detect availability: binary present AND env var set.
@@ -153,7 +171,7 @@ have() {
 have perplexity PERPLEXITY_API_KEY && available+=(perplexity)
 have exa        EXA_API_KEY        && available+=(exa)
 have jina       JINA_API_KEY       && available+=(jina)
-have tavily     TAVILY_API_KEY     && available+=(tavily)
+have tvly       TAVILY_API_KEY     && available+=(tvly)
 
 if [ ${#available[@]} -eq 0 ]; then
   echo "first-volley: no search CLI available (binary + env var)" >&2
@@ -173,7 +191,7 @@ for prov in "${available[@]}"; do
     perplexity) launch_perplexity & ;;
     exa)        launch_exa        & ;;
     jina)       launch_jina       & ;;
-    tavily)     launch_tavily     & ;;
+    tvly)       launch_tvly       & ;;
   esac
   pids+=("$!")
   provs+=("$prov")
