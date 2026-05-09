@@ -4,7 +4,7 @@ Living doc. Items are ordered by **value × ease**, anchored against a
 parity reference: an external OSINT skill we surveyed for feature scope,
 plus gaps surfaced during real runs and design review.
 
-Date opened: 2026-04-27 · Last revised: 2026-05-02 (R20 closed) · Owner: @sapihav
+Date opened: 2026-04-27 · Last revised: 2026-05-09 (open-issue snapshot pre-absorption) · Owner: @sapihav
 
 ---
 
@@ -463,6 +463,39 @@ prose in SKILL.md.
 
 **Why P3:** purely operator UX — doesn't unblock anything else.
 Touch only after R20 ships and the v2 render shape stabilises.
+
+---
+
+## Open-issue snapshot pre-absorption (2026-05-09)
+
+Captured before folding skill into Tessera monorepo. Migration handed
+to a separate agent.
+
+**Upstream `sapihav/osint-dossier` (this repo):**
+- **#6** — `test(volley): add positive-path tvly wrap case`. R26 wrap
+  (raw tvly API → documented envelope) currently has no positive-path
+  assertion in `tests/scripts/test-volley.sh` — only silent-drop. Add
+  third `run_case` where mock `tvly` honours `-o "$out"` and writes
+  raw API JSON; assert `volley-tvly.json .result.results | type ==
+  "array"`, bare `.results` stripped, status artifact shows
+  `merge_outcome=="accepted"`, merged seed contains tvly row. ~30
+  LOC. Surfaced by code-reviewer during tessera re-vendor review of
+  `e365e4d`.
+
+**Tessera-side dossier-relevant (`sapihav/tessera`):**
+- **#29** `D: Dossier scenarios — entity-type taxonomy beyond person`
+  — parallel-safe, size:S.
+- **#30** `D: Dossier — implement company / organization scenario`
+  — blocked, size:M.
+- **#31** `D: Dossier — implement community scenario` — blocked,
+  size:M.
+- **#32** `D: Chat input — spec one-shot NL request format` —
+  parallel-safe, size:S.
+- **#33** `D: Chat input — agent parses free-form NL request` —
+  blocked, size:M.
+
+After absorption, upstream #6 should be re-filed against tessera and
+upstream closed with a back-link.
 
 ---
 
