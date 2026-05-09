@@ -96,6 +96,13 @@ run_provider() {
   # ({query, answer, results[], ...}) without our envelope. Wrap so
   # merge-volley.sh can consume `.result.results` / `.result.answer`
   # uniformly across providers.
+  #
+  # The predicate `(has("result") | not)` intentionally bypasses the wrap
+  # if tvly ever adds a top-level `result` key — we'd hand it through as
+  # already-enveloped. If a future tvly schema reuses `result` for
+  # something else (e.g. a string), merge-volley would silently see
+  # `null` results / no answer and surface as "rejected:no-rows-no-answer";
+  # that's the signal to revisit this wrap.
   if [ "$prov" = "tvly" ] && [ -s "$out" ]; then
     if jq -e 'type == "object" and (has("results") or has("answer")) and (has("result") | not)' \
          "$out" >/dev/null 2>&1; then
