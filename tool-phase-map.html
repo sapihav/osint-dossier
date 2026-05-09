@@ -1,0 +1,745 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>osint-dossier — Tool × Phase Map</title>
+<style>
+:root {
+  --bg: #0d1117;
+  --panel: #161b22;
+  --panel-hover: #1c232c;
+  --border: #2a313c;
+  --border-hover: #3d4856;
+  --text: #d6dde6;
+  --muted: #7d8896;
+  --accent: #6fd1c4;
+  --accent-dim: #3a6660;
+  --warn: #d4a574;
+  --info: #88a9d6;
+  --bad: #e08989;
+  --good: #b8d68e;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "SF Pro Text", system-ui, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+body {
+  min-height: 100vh;
+  padding: 40px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mono { font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace; }
+
+header {
+  width: 100%;
+  max-width: 1280px;
+  margin-bottom: 32px;
+}
+.brand {
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 6px;
+}
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.012em;
+  margin: 0 0 6px;
+}
+.tagline {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0;
+  max-width: 80ch;
+}
+
+main { width: 100%; max-width: 1280px; display: flex; flex-direction: column; gap: 32px; }
+
+section h2 {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 12px;
+  font-weight: 600;
+}
+section .desc {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 0 0 16px;
+  max-width: 90ch;
+}
+
+/* ========== Phase pipeline ========== */
+.pipeline {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 8px;
+}
+.phase {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 10px 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 180px;
+  transition: border-color 120ms;
+}
+.phase:hover { border-color: var(--border-hover); }
+.phase .pn {
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.phase .ptitle {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.phase .pgoal {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+.phase .ptools {
+  margin-top: auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tool-chip {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  cursor: default;
+  transition: color 120ms, border-color 120ms;
+}
+.tool-chip[data-role="primary"]   { color: var(--accent); border-color: var(--accent-dim); }
+.tool-chip[data-role="fallback"]  { color: var(--info);   border-color: #3a4a66; }
+.tool-chip[data-role="optional"]  { color: var(--warn);   border-color: var(--warn); }
+.tool-chip[data-role="internal"]  { color: var(--good);   border-color: #5a6e3e; }
+.tool-chip[data-role="missing"]   { color: var(--bad);    border-color: var(--bad); text-decoration: line-through; }
+
+@media (max-width: 1100px) { .pipeline { grid-template-columns: repeat(4, 1fr); } }
+@media (max-width: 700px)  { .pipeline { grid-template-columns: repeat(2, 1fr); } }
+
+/* ========== Tool × Phase matrix ========== */
+.matrix-wrap {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: auto;
+  max-width: 100%;
+}
+table.matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  min-width: 980px;
+}
+table.matrix th, table.matrix td {
+  text-align: center;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  vertical-align: middle;
+}
+table.matrix tbody th {
+  text-align: left;
+  padding-left: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+table.matrix thead th {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+  background: var(--panel);
+  position: sticky;
+  top: 0;
+}
+table.matrix tbody tr:hover { background: var(--panel-hover); }
+table.matrix tbody th .bin {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  color: var(--muted);
+  margin-top: 2px;
+  font-weight: 400;
+}
+.cell {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+.cell[data-r="primary"]  { color: var(--accent); border-color: var(--accent); }
+.cell[data-r="fallback"] { color: var(--info);   border-color: #3a4a66; }
+.cell[data-r="parallel"] { color: var(--accent); border-color: var(--accent-dim); }
+.cell[data-r="L1"], .cell[data-r="L2"], .cell[data-r="L3"], .cell[data-r="L4"] {
+  color: var(--warn); border-color: var(--warn);
+}
+.cell[data-r="—"] { color: #404a57; border: none; }
+
+/* ========== Tool status panel ========== */
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+.tool-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tool-card h3 {
+  margin: 0;
+  font-size: 14px;
+  font-family: ui-monospace, monospace;
+  color: var(--accent);
+  font-weight: 600;
+}
+.tool-card .why {
+  font-size: 12px;
+  color: var(--text);
+  margin: 4px 0 0;
+}
+.tool-card .meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+.tool-card .badge {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+}
+.badge[data-s="installed"] { color: var(--accent); border-color: var(--accent-dim); }
+.badge[data-s="missing"]   { color: var(--bad);    border-color: var(--bad); }
+.badge[data-s="env-ok"]    { color: var(--good);   border-color: #5a6e3e; }
+.badge[data-s="env-miss"]  { color: var(--bad);    border-color: var(--bad); }
+.badge[data-cost="free"]   { color: var(--accent); border-color: var(--accent-dim); }
+.badge[data-cost="cheap"]  { color: var(--good);   border-color: #5a6e3e; }
+.badge[data-cost="paid"]   { color: var(--warn);   border-color: var(--warn); }
+.badge[data-cost="deep"]   { color: #c594d6;       border-color: #c594d6; }
+
+/* ========== Cost ladder ========== */
+.ladder {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.tier {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tier .tn {
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--accent);
+  letter-spacing: 0.1em;
+}
+.tier .tc {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+.tier .tb {
+  font-size: 11px;
+  color: var(--muted);
+}
+.tier .tt {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 6px;
+}
+@media (max-width: 800px) { .ladder { grid-template-columns: repeat(2, 1fr); } }
+
+/* ========== Why-jina panel ========== */
+.why-jina {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px 20px;
+}
+.why-jina ol { margin: 0; padding-left: 22px; }
+.why-jina li { margin-bottom: 10px; font-size: 13px; }
+.why-jina li strong { color: var(--accent); font-weight: 600; }
+.why-jina code {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  background: #0a0e13;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 1px 5px;
+  color: var(--text);
+}
+
+/* ========== Legend ========== */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+.legend .swatch {
+  display: inline-block;
+  font-family: ui-monospace, monospace;
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  margin-right: 6px;
+}
+
+footer {
+  margin-top: 32px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  width: 100%;
+  max-width: 1280px;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <p class="brand">osint-dossier · operator reference</p>
+  <h1>Tool × Phase Map</h1>
+  <p class="tagline">Which CLI runs in which phase, why jina dominates in practice, and where the silent-drop bugs were.</p>
+</header>
+
+<main>
+
+  <!-- ============ Phase pipeline ============ -->
+  <section>
+    <h2>Phase pipeline</h2>
+    <p class="desc">Linear flow Phase 0 → 7. Each card shows phase goal and the tools it actually invokes. Color = role in that phase.</p>
+    <div class="legend">
+      <span><span class="swatch" data-role="primary" style="color:var(--accent);border-color:var(--accent-dim)">primary</span> default tool</span>
+      <span><span class="swatch" data-role="fallback" style="color:var(--info);border-color:#3a4a66">fallback</span> chained on failure</span>
+      <span><span class="swatch" data-role="optional" style="color:var(--warn);border-color:var(--warn)">optional</span> escalation / opt-in</span>
+      <span><span class="swatch" data-role="internal" style="color:var(--good);border-color:#5a6e3e">internal</span> local script / no network</span>
+    </div>
+    <div class="pipeline">
+
+      <div class="phase">
+        <div class="pn">Phase 0</div>
+        <div class="ptitle">Preflight</div>
+        <div class="pgoal">Detect installed CLIs + env vars. Emit <span class="mono">00-tooling.json</span>. Stop if no search CLI.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="internal">check-tools.sh</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 1</div>
+        <div class="ptitle">Seed search</div>
+        <div class="pgoal">Fan out search-volley in parallel. Stagger 0.5s, 60s timeout each. Merge by canonical URL.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="primary">perplexity</span>
+          <span class="tool-chip" data-role="primary">exa</span>
+          <span class="tool-chip" data-role="primary">tvly</span>
+          <span class="tool-chip" data-role="primary">jina</span>
+          <span class="tool-chip" data-role="fallback">WebSearch</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 2</div>
+        <div class="ptitle">Internal intel</div>
+        <div class="pgoal">Local data, 4 gates. Telegram / email / vault. Never quoted verbatim. No external CLI.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="internal">AskUserQuestion</span>
+          <span class="tool-chip" data-role="internal">Read/Write</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 3</div>
+        <div class="ptitle">Platform extract</div>
+        <div class="pgoal">Per-platform structured pull. Primary→fallback chain. Switch on failure, no retry.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="primary">apify</span>
+          <span class="tool-chip" data-role="missing">brightdata</span>
+          <span class="tool-chip" data-role="fallback">jina read</span>
+          <span class="tool-chip" data-role="fallback">WebFetch</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 4</div>
+        <div class="ptitle">Cross-ref + grade</div>
+        <div class="pgoal">Grade each fact A/B/C/D/I. Contradiction handling. Name-collision check.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="internal">no network</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 5</div>
+        <div class="ptitle">Psychoprofile</div>
+        <div class="pgoal">Optional. MBTI per dimension + writing-style metrics from public text only.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="optional">opt-in only</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 6</div>
+        <div class="ptitle">Gaps + escalation</div>
+        <div class="pgoal">Deterministic over slot catalog. Runs L1→L4 ladder against unmet slots only.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="optional">L1 search</span>
+          <span class="tool-chip" data-role="optional">L2 jina/tvly</span>
+          <span class="tool-chip" data-role="optional">L3 apify</span>
+          <span class="tool-chip" data-role="optional">L4 deep</span>
+        </div>
+      </div>
+
+      <div class="phase">
+        <div class="pn">Phase 7</div>
+        <div class="ptitle">Render</div>
+        <div class="pgoal">Fill <span class="mono">dossier-template.md</span>. Emit <span class="mono">dossier.md</span> + JSONL sidecar + audit footer.</div>
+        <div class="ptools">
+          <span class="tool-chip" data-role="internal">spend-total.sh</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ Tool × Phase matrix ============ -->
+  <section>
+    <h2>Tool × Phase matrix</h2>
+    <p class="desc">Read across a row to see where each CLI gets invoked. Cells encode role: parallel = part of Phase-1 fan-out, primary = first choice, fallback = chained on failure, L1–L4 = escalation tier in Phase 6.</p>
+    <div class="matrix-wrap">
+      <table class="matrix">
+        <thead>
+          <tr>
+            <th style="text-align:left;padding-left:14px">Tool</th>
+            <th>P0</th><th>P1</th><th>P2</th><th>P3</th><th>P4</th><th>P5</th><th>P6</th><th>P7</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>perplexity<span class="bin">PERPLEXITY_API_KEY</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="parallel">parallel</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L1">L1 sonar</span> <span class="cell" data-r="L4">L4 deep</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>exa<span class="bin">EXA_API_KEY</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="parallel">parallel</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L1">L1 search</span> <span class="cell" data-r="L4">L4 deep</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>tvly<span class="bin">TAVILY_API_KEY</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="parallel">parallel</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L1">L1 basic</span> <span class="cell" data-r="L2">L2 extract</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>jina<span class="bin">JINA_API_KEY</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="parallel">parallel search</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="fallback">read fallback</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L2">L2 read</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>apify<span class="bin">APIFY_TOKEN</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="primary">primary actor</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L3">L3 per-platform</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>brightdata<span class="bin">BRIGHTDATA_API_KEY · BIN MISSING</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="fallback">scrape fallback</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>parallel-cli<span class="bin">PARALLEL_API_KEY</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L4">L4 deep</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>WebSearch<span class="bin">built-in</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="fallback">fallback if no CLI</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="L1">L1</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+          <tr>
+            <th>WebFetch<span class="bin">built-in</span></th>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="primary">t.me/s/* primary</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+            <td><span class="cell" data-r="—">—</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ Cost ladder ============ -->
+  <section>
+    <h2>Cost ladder (Phase 6 escalation)</h2>
+    <p class="desc">Escalation walks tiers L1→L4 against unmet slots only, never as default. Budget cap $0.50/subject — a single L4 can already meet or exceed.</p>
+    <div class="ladder">
+      <div class="tier">
+        <div class="tn">Tier L1</div>
+        <div class="tc">~$0 / call</div>
+        <div class="tb">Cheap web search. First escalation step.</div>
+        <div class="tt">
+          <span class="tool-chip" data-role="primary">WebSearch</span>
+          <span class="tool-chip" data-role="primary">perplexity sonar</span>
+          <span class="tool-chip" data-role="primary">exa search</span>
+          <span class="tool-chip" data-role="primary">tvly basic</span>
+        </div>
+      </div>
+      <div class="tier">
+        <div class="tn">Tier L2</div>
+        <div class="tc">~$0.01 / call</div>
+        <div class="tb">URL extract / clean read.</div>
+        <div class="tt">
+          <span class="tool-chip" data-role="primary">jina read</span>
+          <span class="tool-chip" data-role="primary">tvly extract</span>
+        </div>
+      </div>
+      <div class="tier">
+        <div class="tn">Tier L3</div>
+        <div class="tc">~$0.05–0.10 / call</div>
+        <div class="tb">Per-platform structured extraction.</div>
+        <div class="tt">
+          <span class="tool-chip" data-role="primary">apify call &lt;actor&gt;</span>
+        </div>
+      </div>
+      <div class="tier">
+        <div class="tn">Tier L4</div>
+        <div class="tc">~$0.50–$5 / call</div>
+        <div class="tb">Deep research. One call may bust the budget.</div>
+        <div class="tt">
+          <span class="tool-chip" data-role="optional">perplexity deep</span>
+          <span class="tool-chip" data-role="optional">exa deep</span>
+          <span class="tool-chip" data-role="optional">parallel-cli deep</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Tool status panel ============ -->
+  <section>
+    <h2>Tool status on this host</h2>
+    <p class="desc">Verified live. Binary present + env var present = usable. brightdata binary missing — Phase 3 personal-FB chain stops, LinkedIn falls through to jina read.</p>
+    <div class="tools-grid">
+
+      <div class="tool-card">
+        <h3>perplexity</h3>
+        <p class="why">Own CLI. Sonar (L1) + deep (L4). Phase 1 fan-out + Phase 6 escalation.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">installed</span>
+          <span class="badge" data-s="env-ok">env ok</span>
+          <span class="badge" data-cost="cheap">L1 cheap</span>
+          <span class="badge" data-cost="deep">L4 deep</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>exa</h3>
+        <p class="why">Own CLI. Phase 1 fan-out + L1/L4 escalation.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">installed</span>
+          <span class="badge" data-s="env-ok">env ok</span>
+          <span class="badge" data-cost="cheap">L1 cheap</span>
+          <span class="badge" data-cost="deep">L4 deep</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>tvly</h3>
+        <p class="why">Official Tavily CLI (PyPI <span class="mono">tavily-cli</span>). R26 (today) replaced legacy fork. Pre-R26 envelope shape mismatch silently dropped tvly results.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">installed</span>
+          <span class="badge" data-s="env-ok">env ok</span>
+          <span class="badge" data-cost="cheap">L1/L2</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>jina</h3>
+        <p class="why">Official jina-ai/cli. Search (Phase 1) + read (Phase 3 fallback + L2 extract). The catch-all extractor — see "Why jina dominates" below.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">installed</span>
+          <span class="badge" data-s="env-ok">env ok</span>
+          <span class="badge" data-cost="cheap">L2 cheap</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>apify</h3>
+        <p class="why">Official apify-cli. Per-platform actors: linkedin, instagram, tiktok, youtube, fb-pages. Costs $0.05+/call.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">installed</span>
+          <span class="badge" data-s="env-ok">env ok (APIFY_TOKEN)</span>
+          <span class="badge" data-cost="paid">L3 paid</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>brightdata</h3>
+        <p class="why">Phase 3 fallback (personal FB only-path; LinkedIn/IG/TikTok 2nd choice). Missing on this host — chains drop to jina read.</p>
+        <div class="meta">
+          <span class="badge" data-s="missing">binary missing</span>
+          <span class="badge" data-s="env-ok">env set (unused)</span>
+          <span class="badge" data-cost="paid">paid</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>parallel-cli</h3>
+        <p class="why">L4 deep-research only. Reserved for Phase 6 gap-targeted re-run.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">installed</span>
+          <span class="badge" data-s="env-ok">env ok</span>
+          <span class="badge" data-cost="deep">L4 deep</span>
+        </div>
+      </div>
+
+      <div class="tool-card">
+        <h3>WebSearch · WebFetch</h3>
+        <p class="why">Built-in Claude Code primitives. Brave-backed search; t.me/s/* fetch. Free fallbacks.</p>
+        <div class="meta">
+          <span class="badge" data-s="installed">built-in</span>
+          <span class="badge" data-cost="free">free</span>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ============ Why jina ============ -->
+  <section>
+    <h2>Why you've only seen jina in practice</h2>
+    <div class="why-jina">
+      <ol>
+        <li><strong>Phase 3 fallback magnet.</strong> <code>jina read &lt;url&gt;</code> is the final fallback for LinkedIn, YouTube, and "any other site". apify costs $0.05+ per call so operators skip; <code>brightdata</code> binary is <em>missing</em> on this host — so jina catches everything that was supposed to fall through.</li>
+        <li><strong>Silent-drop bugs hid the others.</strong> Pre-R24 (commit <code>4a42795</code>), <code>merge-volley.sh</code> rejected envelopes whose shape didn't match <code>{schema_version, provider, command, result}</code>:
+          <ul>
+            <li>jina emits bare <code>{"results":[…]}</code> → silently dropped until R24 added an envelope wrap.</li>
+            <li>tvly emits raw Tavily API body → silently dropped until <strong>R26 (today's commit)</strong> added a wrap.</li>
+            <li>perplexity / exa: own CLIs, envelope-correct. May have lacked env vars in earlier runs.</li>
+          </ul>
+          So the <em>visible</em> survivor each week was whichever provider's shape happened to match. Post-R24 + R26, all four providers should land in <code>01-seed.json</code>.
+        </li>
+        <li><strong>L2 escalation tier = jina.</strong> Phase 6 cost-ladder L2 is literally <code>jina read</code> + <code>tvly extract</code>; tvly extract only became real at R26.</li>
+        <li><strong>Cost ladder pressure.</strong> L1 cheap, L2 jina cheap (~free with key), L3 apify ~$0.05/call, L4 perplexity-deep multi-dollar. Operators' natural floor lands on jina.</li>
+      </ol>
+      <p style="margin:8px 0 0;color:var(--muted);font-size:12px">Not "others bad/broken" — others were silently dropped (envelope mismatch), expensive (apify / L4), or uninstalled (brightdata).</p>
+    </div>
+  </section>
+
+  <!-- ============ Next move ============ -->
+  <section>
+    <h2>Verify post-R26</h2>
+    <p class="desc">Run a fresh Phase 1 volley and check <code class="mono">stages/01-volley-status.json</code>. If <code class="mono">dropped_providers &gt; 0</code>, the file is the operator-visible drop surface added in R24 specifically for this question.</p>
+  </section>
+
+</main>
+
+<footer>
+  <p>Generated from <span class="mono">SKILL.md</span>, <span class="mono">CHANGELOG.md</span>, and live <span class="mono">command -v</span> / env-var probe.</p>
+</footer>
+
+</body>
+</html>
